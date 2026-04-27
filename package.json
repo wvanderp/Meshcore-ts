@@ -1,6 +1,6 @@
 {
   "name": "meshcore-ts",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "TypeScript library for connecting and working with MeshCore companion devices over Serial, BLE, and WiFi",
   "type": "module",
   "exports": {
