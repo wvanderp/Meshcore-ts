@@ -40,6 +40,10 @@
     "iot"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wvanderp/Meshcore-ts.git"
+  },
   "dependencies": {
     "@noble/curves": "^2.0.1"
   },
