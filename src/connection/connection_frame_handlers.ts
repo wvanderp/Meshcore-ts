@@ -45,6 +45,10 @@ class ConnectionFrameHandlers extends ConnectionCommands {
             this.onContactMsgRecvResponse(bufferReader);
         } else if(responseCode === Constants.ResponseCodes.ChannelMsgRecv){
             this.onChannelMsgRecvResponse(bufferReader);
+        } else if(responseCode === Constants.ResponseCodes.ContactMsgRecvV3){
+            this.onContactMsgRecvV3Response(bufferReader);
+        } else if(responseCode === Constants.ResponseCodes.ChannelMsgRecvV3){
+            this.onChannelMsgRecvV3Response(bufferReader);
         } else if(responseCode === Constants.ResponseCodes.ContactsStart){
             this.onContactsStartResponse(bufferReader);
         } else if(responseCode === Constants.ResponseCodes.Contact){
@@ -69,12 +73,22 @@ class ConnectionFrameHandlers extends ConnectionCommands {
             this.onSignStartResponse(bufferReader);
         } else if(responseCode === Constants.ResponseCodes.Signature){
             this.onSignatureResponse(bufferReader);
+        } else if(responseCode === Constants.ResponseCodes.CustomVars){
+            this.onCustomVarsResponse(bufferReader);
         } else if(responseCode === Constants.ResponseCodes.AdvertPath){
             this.onAdvertPathResponse(bufferReader);
+        } else if(responseCode === Constants.ResponseCodes.TuningParams){
+            this.onTuningParamsResponse(bufferReader);
         } else if(responseCode === Constants.ResponseCodes.Stats){
             this.onStatsResponse(bufferReader);
+        } else if(responseCode === Constants.ResponseCodes.AutoAddConfig){
+            this.onAutoAddConfigResponse(bufferReader);
+        } else if(responseCode === Constants.ResponseCodes.AllowedRepeatFreq){
+            this.onAllowedRepeatFreqResponse(bufferReader);
         } else if(responseCode === Constants.ResponseCodes.ChannelDataRecv){
             this.onChannelDataRecvResponse(bufferReader);
+        } else if(responseCode === Constants.ResponseCodes.DefaultFloodScope){
+            this.onDefaultFloodScopeResponse(bufferReader);
         } else if(responseCode === Constants.PushCodes.Advert){
             this.onAdvertPush(bufferReader);
         } else if(responseCode === Constants.PushCodes.PathUpdated){
@@ -85,6 +99,8 @@ class ConnectionFrameHandlers extends ConnectionCommands {
             this.onMsgWaitingPush(bufferReader);
         } else if(responseCode === Constants.PushCodes.RawData){
             this.onRawDataPush(bufferReader);
+        } else if(responseCode === Constants.PushCodes.LoginFail){
+            this.onLoginFailPush(bufferReader);
         } else if(responseCode === Constants.PushCodes.LoginSuccess){
             this.onLoginSuccessPush(bufferReader);
         } else if(responseCode === Constants.PushCodes.StatusResponse){
@@ -99,6 +115,14 @@ class ConnectionFrameHandlers extends ConnectionCommands {
             this.onNewAdvertPush(bufferReader);
         } else if(responseCode === Constants.PushCodes.BinaryResponse){
             this.onBinaryResponsePush(bufferReader);
+        } else if(responseCode === Constants.PushCodes.PathDiscoveryResponse){
+            this.onPathDiscoveryResponsePush(bufferReader);
+        } else if(responseCode === Constants.PushCodes.ControlData){
+            this.onControlDataPush(bufferReader);
+        } else if(responseCode === Constants.PushCodes.ContactDeleted){
+            this.onContactDeletedPush(bufferReader);
+        } else if(responseCode === Constants.PushCodes.ContactsFull){
+            this.onContactsFullPush(bufferReader);
         } else {
             console.log(`unhandled frame: code=${responseCode}`, frame);
         }
@@ -165,11 +189,85 @@ class ConnectionFrameHandlers extends ConnectionCommands {
         });
     }
 
-    onLoginSuccessPush(bufferReader: BufferReader) {
-        this.emit(Constants.PushCodes.LoginSuccess, {
+    onLoginFailPush(bufferReader: BufferReader) {
+        this.emit(Constants.PushCodes.LoginFail, {
             reserved: bufferReader.readByte(),
             pubKeyPrefix: bufferReader.readBytes(6),
         });
+    }
+
+    onPathDiscoveryResponsePush(bufferReader: BufferReader) {
+        const reserved = bufferReader.readByte();
+        const pubKeyPrefix = bufferReader.readBytes(6);
+        const outPathLen = bufferReader.readByte();
+        const outPathEncoding = this.readPathEncoding(outPathLen);
+        const outPath = bufferReader.readBytes(outPathEncoding.pathByteLength);
+        const inPathLen = bufferReader.readByte();
+        const inPathEncoding = this.readPathEncoding(inPathLen);
+
+        this.emit(Constants.PushCodes.PathDiscoveryResponse, {
+            reserved: reserved,
+            pubKeyPrefix: pubKeyPrefix,
+            outPathLen: outPathLen,
+            outPath: outPath,
+            inPathLen: inPathLen,
+            inPath: bufferReader.readBytes(inPathEncoding.pathByteLength),
+        });
+    }
+
+    onContactDeletedPush(bufferReader: BufferReader) {
+        this.emit(Constants.PushCodes.ContactDeleted, {
+            publicKey: bufferReader.readBytes(32),
+        });
+    }
+
+    onControlDataPush(bufferReader: BufferReader) {
+        if(bufferReader.getRemainingBytesCount() < 3){
+            console.log("malformed control data push: missing radio metadata");
+            return;
+        }
+
+        const lastSnr = bufferReader.readInt8() / 4;
+        const lastRssi = bufferReader.readInt8();
+        const pathLen = bufferReader.readByte();
+        const remainingLength = bufferReader.getRemainingBytesCount();
+
+        if(pathLen > remainingLength){
+            console.log(
+                `malformed control data push: path length ${pathLen} exceeds remaining frame length ${remainingLength}`,
+            );
+            return;
+        }
+
+        this.emit(Constants.PushCodes.ControlData, {
+            lastSnr: lastSnr,
+            lastRssi: lastRssi,
+            pathLen: pathLen,
+            path: bufferReader.readBytes(pathLen),
+            payload: bufferReader.readRemainingBytes(),
+        });
+    }
+
+    onContactsFullPush(bufferReader: BufferReader) {
+        void bufferReader;
+        this.emit(Constants.PushCodes.ContactsFull, {});
+    }
+
+    onLoginSuccessPush(bufferReader: BufferReader) {
+        const response: Record<string, unknown> = {
+            reserved: bufferReader.readByte(),
+            pubKeyPrefix: bufferReader.readBytes(6),
+        };
+        if(bufferReader.getRemainingBytesCount() >= 4){
+            response.tag = bufferReader.readUInt32LE();
+        }
+        if(bufferReader.getRemainingBytesCount() >= 1){
+            response.permissions = bufferReader.readByte();
+        }
+        if(bufferReader.getRemainingBytesCount() >= 1){
+            response.firmwareVer = bufferReader.readByte();
+        }
+        this.emit(Constants.PushCodes.LoginSuccess, response);
     }
 
     onStatusResponsePush(bufferReader: BufferReader) {
@@ -266,18 +364,44 @@ class ConnectionFrameHandlers extends ConnectionCommands {
     }
 
     onBatteryVoltageResponse(bufferReader: BufferReader) {
-        this.emit(Constants.ResponseCodes.BatteryVoltage, {
+        const response: Record<string, unknown> = {
             batteryMilliVolts: bufferReader.readUInt16LE(),
-        });
+        };
+        if(bufferReader.getRemainingBytesCount() >= 8){
+            response.storageUsedKb = bufferReader.readUInt32LE();
+            response.storageTotalKb = bufferReader.readUInt32LE();
+        }
+        this.emit(Constants.ResponseCodes.BatteryVoltage, response);
     }
 
     onDeviceInfoResponse(bufferReader: BufferReader) {
-        this.emit(Constants.ResponseCodes.DeviceInfo, {
-            firmwareVer: bufferReader.readInt8(),
-            reserved: bufferReader.readBytes(6),
-            firmware_build_date: bufferReader.readCString(12),
-            manufacturerModel: bufferReader.readString(),
-        });
+        const firmwareVer = bufferReader.readUInt8();
+        const reserved = bufferReader.readBytes(6);
+        const firmwareBuildDate = bufferReader.readCString(12);
+        const response: Record<string, unknown> = {
+            firmwareVer: firmwareVer,
+            reserved: reserved,
+            firmware_build_date: firmwareBuildDate,
+        };
+
+        if(bufferReader.getRemainingBytesCount() >= 60){
+            const reservedReader = new BufferReader(reserved);
+            response.maxContacts = reservedReader.readByte() * 2;
+            response.maxChannels = reservedReader.readByte();
+            response.blePin = reservedReader.readUInt32LE();
+            response.manufacturerModel = bufferReader.readCString(40) ?? "";
+            response.semanticVersion = bufferReader.readCString(20) ?? "";
+            if(bufferReader.getRemainingBytesCount() >= 1){
+                response.clientRepeat = bufferReader.readByte() !== 0;
+            }
+            if(bufferReader.getRemainingBytesCount() >= 1){
+                response.pathHashMode = bufferReader.readByte();
+            }
+        } else {
+            response.manufacturerModel = bufferReader.readString();
+        }
+
+        this.emit(Constants.ResponseCodes.DeviceInfo, response);
     }
 
     onPrivateKeyResponse(bufferReader: BufferReader) {
@@ -319,6 +443,52 @@ class ConnectionFrameHandlers extends ConnectionCommands {
     onSignatureResponse(bufferReader: BufferReader) {
         this.emit(Constants.ResponseCodes.Signature, {
             signature: bufferReader.readBytes(64),
+        });
+    }
+
+    onCustomVarsResponse(bufferReader: BufferReader) {
+        this.emit(Constants.ResponseCodes.CustomVars, {
+            value: bufferReader.readString(),
+        });
+    }
+
+    onTuningParamsResponse(bufferReader: BufferReader) {
+        const rxDelayBaseRaw = bufferReader.readUInt32LE();
+        const airtimeFactorRaw = bufferReader.readUInt32LE();
+        this.emit(Constants.ResponseCodes.TuningParams, {
+            rxDelayBase: rxDelayBaseRaw / 1000,
+            airtimeFactor: airtimeFactorRaw / 1000,
+            rxDelayBaseRaw: rxDelayBaseRaw,
+            airtimeFactorRaw: airtimeFactorRaw,
+        });
+    }
+
+    onAutoAddConfigResponse(bufferReader: BufferReader) {
+        this.emit(Constants.ResponseCodes.AutoAddConfig, {
+            config: bufferReader.readByte(),
+            maxHops: bufferReader.readByte(),
+        });
+    }
+
+    onAllowedRepeatFreqResponse(bufferReader: BufferReader) {
+        const ranges: Array<{ lowerFreq: number; upperFreq: number }> = [];
+        while(bufferReader.getRemainingBytesCount() >= 8){
+            ranges.push({
+                lowerFreq: bufferReader.readUInt32LE(),
+                upperFreq: bufferReader.readUInt32LE(),
+            });
+        }
+        this.emit(Constants.ResponseCodes.AllowedRepeatFreq, { ranges: ranges });
+    }
+
+    onDefaultFloodScopeResponse(bufferReader: BufferReader) {
+        if(bufferReader.getRemainingBytesCount() === 0){
+            this.emit(Constants.ResponseCodes.DefaultFloodScope, { name: null, key: null });
+            return;
+        }
+        this.emit(Constants.ResponseCodes.DefaultFloodScope, {
+            name: bufferReader.readCString(31) ?? "",
+            key: bufferReader.readBytes(16),
         });
     }
 
@@ -441,6 +611,30 @@ class ConnectionFrameHandlers extends ConnectionCommands {
     onChannelMsgRecvResponse(bufferReader: BufferReader) {
         this.emit(Constants.ResponseCodes.ChannelMsgRecv, {
             channelIdx: bufferReader.readInt8(),
+            pathLen: bufferReader.readByte(),
+            txtType: bufferReader.readByte(),
+            senderTimestamp: bufferReader.readUInt32LE(),
+            text: bufferReader.readString(),
+        });
+    }
+
+    onContactMsgRecvV3Response(bufferReader: BufferReader) {
+        this.emit(Constants.ResponseCodes.ContactMsgRecvV3, {
+            snr: bufferReader.readInt8() / 4,
+            reserved: bufferReader.readBytes(2),
+            pubKeyPrefix: bufferReader.readBytes(6),
+            pathLen: bufferReader.readByte(),
+            txtType: bufferReader.readByte(),
+            senderTimestamp: bufferReader.readUInt32LE(),
+            text: bufferReader.readString(),
+        });
+    }
+
+    onChannelMsgRecvV3Response(bufferReader: BufferReader) {
+        this.emit(Constants.ResponseCodes.ChannelMsgRecvV3, {
+            snr: bufferReader.readInt8() / 4,
+            reserved: bufferReader.readBytes(2),
+            channelIdx: bufferReader.readByte(),
             pathLen: bufferReader.readByte(),
             txtType: bufferReader.readByte(),
             senderTimestamp: bufferReader.readUInt32LE(),

@@ -47,13 +47,21 @@ export type AdvertPathResponse = {
 
 export type BatteryVoltageResponse = {
     batteryMilliVolts: number;
+    storageUsedKb?: number;
+    storageTotalKb?: number;
 };
 
 export type DeviceInfoResponse = {
     firmwareVer: number;
     reserved: Uint8Array;
-    firmware_build_date: string;
+    maxContacts?: number;
+    maxChannels?: number;
+    blePin?: number;
+    firmware_build_date: string | undefined;
     manufacturerModel: string;
+    semanticVersion?: string;
+    clientRepeat?: boolean;
+    pathHashMode?: number;
 };
 
 export type PrivateKeyResponse = {
@@ -146,6 +154,11 @@ export type ContactMessageResponse = {
     text: string;
 };
 
+export type ContactMessageV3Response = ContactMessageResponse & {
+    snr: number;
+    reserved: Uint8Array;
+};
+
 export type ChannelMessageResponse = {
     channelIdx: number;
     pathLen: number;
@@ -154,9 +167,44 @@ export type ChannelMessageResponse = {
     text: string;
 };
 
+export type ChannelMessageV3Response = ChannelMessageResponse & {
+    snr: number;
+    reserved: Uint8Array;
+};
+
+export type CustomVarsResponse = {
+    value: string;
+};
+
+export type TuningParamsResponse = {
+    rxDelayBase: number;
+    airtimeFactor: number;
+    rxDelayBaseRaw: number;
+    airtimeFactorRaw: number;
+};
+
+export type AutoAddConfigResponse = {
+    config: number;
+    maxHops: number;
+};
+
+export type AllowedRepeatFrequencyRange = {
+    lowerFreq: number;
+    upperFreq: number;
+};
+
+export type AllowedRepeatFreqResponse = {
+    ranges: AllowedRepeatFrequencyRange[];
+};
+
+export type DefaultFloodScopeResponse = {
+    name: string | null;
+    key: Uint8Array | null;
+};
+
 export type WaitingMessageRecord = {
-    contactMessage?: ContactMessageResponse;
-    channelMessage?: ChannelMessageResponse;
+    contactMessage?: ContactMessageResponse | ContactMessageV3Response;
+    channelMessage?: ChannelMessageResponse | ChannelMessageV3Response;
     channelData?: ChannelDataResponse;
 };
 
@@ -180,9 +228,40 @@ export type RawDataPush = {
     payload: Uint8Array;
 };
 
+export type ControlDataPush = {
+    lastSnr: number;
+    lastRssi: number;
+    pathLen: number;
+    path: Uint8Array;
+    payload: Uint8Array;
+};
+
+export type ContactsFullPush = Record<string, never>;
+
 export type LoginSuccessPush = {
     reserved: number;
     pubKeyPrefix: Uint8Array;
+    tag?: number;
+    permissions?: number;
+    firmwareVer?: number;
+};
+
+export type LoginFailPush = {
+    reserved: number;
+    pubKeyPrefix: Uint8Array;
+};
+
+export type PathDiscoveryResponsePush = {
+    reserved: number;
+    pubKeyPrefix: Uint8Array;
+    outPathLen: number;
+    outPath: Uint8Array;
+    inPathLen: number;
+    inPath: Uint8Array;
+};
+
+export type ContactDeletedPush = {
+    publicKey: Uint8Array;
 };
 
 export type StatusResponsePush = {

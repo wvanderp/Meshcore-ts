@@ -15,7 +15,7 @@
  */
 class Constants {
 
-    static SupportedCompanionProtocolVersion = 1;
+    static SupportedCompanionProtocolVersion = 3;
 
     static SerialFrameTypes = {
         Incoming: 0x3e, // ">"
@@ -59,31 +59,48 @@ class Constants {
         ImportContact: 18,
         Reboot: 19,
         GetBatteryVoltage: 20,
-        SetTuningParams: 21, // todo
+        SetTuningParams: 21,
         DeviceQuery: 22,
         ExportPrivateKey: 23,
         ImportPrivateKey: 24,
         SendRawData: 25,
-        SendLogin: 26, // todo
-        SendStatusReq: 27, // todo
+        SendLogin: 26,
+        SendStatusReq: 27,
+        HasConnection: 28,
+        Logout: 29,
+        GetContactByKey: 30,
         GetChannel: 31,
         SetChannel: 32,
         SignStart: 33,
         SignData: 34,
         SignFinish: 35,
         SendTracePath: 36,
-        // todo set device pin command
+        SetDevicePin: 37,
         SetOtherParams: 38,
         SendTelemetryReq: 39,
+        GetCustomVars: 40,
+        SetCustomVar: 41,
         GetAdvertPath: 42,
+        GetTuningParams: 43,
 
         SendBinaryReq: 50,
+        FactoryReset: 51,
+        SendPathDiscoveryReq: 52,
 
         SetFloodScope: 54,
+        SendControlData: 55,
 
         GetStats: 56,
+        SendAnonReq: 57,
+        SetAutoAddConfig: 58,
+        GetAutoAddConfig: 59,
+        GetAllowedRepeatFreq: 60,
+        SetPathHashMode: 61,
 
         SendChannelData: 62,
+        SetDefaultFloodScope: 63,
+        GetDefaultFloodScope: 64,
+        SendRawPacket: 65,
     }
 
     static ResponseCodes = {
@@ -103,12 +120,19 @@ class Constants {
         DeviceInfo: 13,
         PrivateKey: 14,
         Disabled: 15,
+        ContactMsgRecvV3: 16,
+        ChannelMsgRecvV3: 17,
         ChannelInfo: 18,
         SignStart: 19,
         Signature: 20,
+        CustomVars: 21,
         AdvertPath: 22,
+        TuningParams: 23,
         Stats: 24,
+        AutoAddConfig: 25,
+        AllowedRepeatFreq: 26,
         ChannelDataRecv: 27,
+        DefaultFloodScope: 28,
     }
 
     static PushCodes = {
@@ -118,13 +142,17 @@ class Constants {
         MsgWaiting: 0x83,
         RawData: 0x84,
         LoginSuccess: 0x85,
-        LoginFail: 0x86, // not usable yet
+        LoginFail: 0x86,
         StatusResponse: 0x87,
         LogRxData: 0x88,
         TraceData: 0x89,
         NewAdvert: 0x8A, // when companion is set to manually add contacts
         TelemetryResponse: 0x8B,
         BinaryResponse: 0x8C,
+        PathDiscoveryResponse: 0x8D,
+        ControlData: 0x8E,
+        ContactDeleted: 0x8F,
+        ContactsFull: 0x90,
     }
 
     static ErrorCodes = {

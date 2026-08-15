@@ -3,7 +3,7 @@ import Constants from './constants'
 
 describe('Constants', () => {
   it('has SupportedCompanionProtocolVersion', () => {
-    expect(Constants.SupportedCompanionProtocolVersion).toBe(1)
+    expect(Constants.SupportedCompanionProtocolVersion).toBe(3)
   })
 
   it('has SerialFrameTypes', () => {

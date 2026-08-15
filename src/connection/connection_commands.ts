@@ -124,6 +124,14 @@ class ConnectionCommands extends ConnectionBase {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    async sendCommandSetTuningParams(rxDelayBase: number, airtimeFactor: number): Promise<void> {
+        const data = new BufferWriter();
+        data.writeByte(Constants.CommandCodes.SetTuningParams);
+        data.writeUInt32LE(rxDelayBase);
+        data.writeUInt32LE(airtimeFactor);
+        await this.sendToRadioFrame(data.toBytes());
+    }
+
     async sendCommandResetPath(pubKey: ByteArrayLike): Promise<void> {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.ResetPath);
@@ -226,6 +234,18 @@ class ConnectionCommands extends ConnectionBase {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    async sendCommandHasConnection(publicKey: ByteArrayLike): Promise<void> {
+        await this.sendCodeAndBytes(Constants.CommandCodes.HasConnection, publicKey);
+    }
+
+    async sendCommandLogout(publicKey: ByteArrayLike): Promise<void> {
+        await this.sendCodeAndBytes(Constants.CommandCodes.Logout, publicKey);
+    }
+
+    async sendCommandGetContactByKey(publicKey: ByteArrayLike): Promise<void> {
+        await this.sendCodeAndBytes(Constants.CommandCodes.GetContactByKey, publicKey);
+    }
+
     async sendCommandSendTelemetryReq(publicKey: ByteArrayLike): Promise<void> {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SendTelemetryReq);
@@ -244,12 +264,53 @@ class ConnectionCommands extends ConnectionBase {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    async sendCommandSetDevicePin(pin: number): Promise<void> {
+        const data = new BufferWriter();
+        data.writeByte(Constants.CommandCodes.SetDevicePin);
+        data.writeUInt32LE(pin);
+        await this.sendToRadioFrame(data.toBytes());
+    }
+
+    async sendCommandGetCustomVars(): Promise<void> {
+        await this.sendCodeAndBytes(Constants.CommandCodes.GetCustomVars);
+    }
+
+    async sendCommandSetCustomVar(name: string, value: string): Promise<void> {
+        const data = new BufferWriter();
+        data.writeByte(Constants.CommandCodes.SetCustomVar);
+        data.writeString(`${name}:${value}`);
+        await this.sendToRadioFrame(data.toBytes());
+    }
+
+    async sendCommandGetTuningParams(): Promise<void> {
+        await this.sendCodeAndBytes(Constants.CommandCodes.GetTuningParams);
+    }
+
     async sendCommandSendBinaryReq(publicKey: ByteArrayLike, requestCodeAndParams: ByteArrayLike): Promise<void> {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SendBinaryReq);
         data.writeBytes(publicKey);
         data.writeBytes(requestCodeAndParams);
         await this.sendToRadioFrame(data.toBytes());
+    }
+
+    async sendCommandFactoryReset(): Promise<void> {
+        const data = new BufferWriter();
+        data.writeByte(Constants.CommandCodes.FactoryReset);
+        data.writeString("reset");
+        await this.sendToRadioFrame(data.toBytes());
+    }
+
+    async sendCommandSendPathDiscoveryReq(publicKey: ByteArrayLike): Promise<void> {
+        const data = new BufferWriter();
+        data.writeByte(Constants.CommandCodes.SendPathDiscoveryReq);
+        data.writeByte(0);
+        data.writeBytes(publicKey);
+        await this.sendToRadioFrame(data.toBytes());
+    }
+
+    async sendCommandSendControlData(payload: ByteArrayLike): Promise<void> {
+        await this.sendCodeAndBytes(Constants.CommandCodes.SendControlData, payload);
     }
 
     async sendCommandSetFloodScope(transportKey: ByteArrayLike): Promise<void> {
@@ -264,6 +325,40 @@ class ConnectionCommands extends ConnectionBase {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.GetStats);
         data.writeByte(statsType);
+        await this.sendToRadioFrame(data.toBytes());
+    }
+
+    async sendCommandSendAnonReq(publicKey: ByteArrayLike, requestData: ByteArrayLike): Promise<void> {
+        const data = new BufferWriter();
+        data.writeByte(Constants.CommandCodes.SendAnonReq);
+        data.writeBytes(publicKey);
+        data.writeBytes(requestData);
+        await this.sendToRadioFrame(data.toBytes());
+    }
+
+    async sendCommandSetAutoAddConfig(config: number, maxHops?: number): Promise<void> {
+        const data = new BufferWriter();
+        data.writeByte(Constants.CommandCodes.SetAutoAddConfig);
+        data.writeByte(config);
+        if(maxHops != null){
+            data.writeByte(maxHops);
+        }
+        await this.sendToRadioFrame(data.toBytes());
+    }
+
+    async sendCommandGetAutoAddConfig(): Promise<void> {
+        await this.sendCodeAndBytes(Constants.CommandCodes.GetAutoAddConfig);
+    }
+
+    async sendCommandGetAllowedRepeatFreq(): Promise<void> {
+        await this.sendCodeAndBytes(Constants.CommandCodes.GetAllowedRepeatFreq);
+    }
+
+    async sendCommandSetPathHashMode(mode: number): Promise<void> {
+        const data = new BufferWriter();
+        data.writeByte(Constants.CommandCodes.SetPathHashMode);
+        data.writeByte(0);
+        data.writeByte(mode);
         await this.sendToRadioFrame(data.toBytes());
     }
 
@@ -327,6 +422,37 @@ class ConnectionCommands extends ConnectionBase {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SetOtherParams);
         data.writeByte(manualAddContacts);
+        await this.sendToRadioFrame(data.toBytes());
+    }
+
+    async sendCommandSetDefaultFloodScope(name: string | null, key?: ByteArrayLike): Promise<void> {
+        const data = new BufferWriter();
+        data.writeByte(Constants.CommandCodes.SetDefaultFloodScope);
+        if(name != null && key != null){
+            data.writeCString(name, 31);
+            data.writeBytes(key);
+        }
+        await this.sendToRadioFrame(data.toBytes());
+    }
+
+    async sendCommandGetDefaultFloodScope(): Promise<void> {
+        await this.sendCodeAndBytes(Constants.CommandCodes.GetDefaultFloodScope);
+    }
+
+    async sendCommandSendRawPacket(priority: number, packet: ByteArrayLike): Promise<void> {
+        const data = new BufferWriter();
+        data.writeByte(Constants.CommandCodes.SendRawPacket);
+        data.writeByte(priority);
+        data.writeBytes(packet);
+        await this.sendToRadioFrame(data.toBytes());
+    }
+
+    private async sendCodeAndBytes(code: number, bytes?: ByteArrayLike): Promise<void> {
+        const data = new BufferWriter();
+        data.writeByte(code);
+        if(bytes != null){
+            data.writeBytes(bytes);
+        }
         await this.sendToRadioFrame(data.toBytes());
     }
 

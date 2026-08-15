@@ -706,6 +706,54 @@ describe('Connection', () => {
       expect(reader.readByte()).toBe(0)
       expect(reader.readBytes(16)).toEqual(floodScope)
     })
+
+    it('serializes the complete current companion command surface', async () => {
+      const publicKey = sequence(32, 0x21)
+      const key = sequence(16, 0x51)
+
+      await connection.sendCommandSetTuningParams(1_250, 3_500)
+      expect(connection.latestFrame()).toEqual(concatBytes(byte(21), uint32LE(1_250), uint32LE(3_500)))
+      await connection.sendCommandHasConnection(publicKey)
+      expect(connection.latestFrame()).toEqual(concatBytes(byte(28), publicKey))
+      await connection.sendCommandLogout(publicKey)
+      expect(connection.latestFrame()).toEqual(concatBytes(byte(29), publicKey))
+      await connection.sendCommandGetContactByKey(publicKey)
+      expect(connection.latestFrame()).toEqual(concatBytes(byte(30), publicKey))
+      await connection.sendCommandSetDevicePin(123456)
+      expect(connection.latestFrame()).toEqual(concatBytes(byte(37), uint32LE(123456)))
+      await connection.sendCommandGetCustomVars()
+      expect(connection.latestFrame()).toEqual(byte(40))
+      await connection.sendCommandSetCustomVar('gps', '1')
+      expect(connection.latestFrame()).toEqual(concatBytes(byte(41), utf8('gps:1')))
+      await connection.sendCommandGetTuningParams()
+      expect(connection.latestFrame()).toEqual(byte(43))
+      await connection.sendCommandFactoryReset()
+      expect(connection.latestFrame()).toEqual(concatBytes(byte(51), utf8('reset')))
+      await connection.sendCommandSendPathDiscoveryReq(publicKey)
+      expect(connection.latestFrame()).toEqual(concatBytes(byte(52), byte(0), publicKey))
+      await connection.sendCommandSendControlData(Uint8Array.of(0x80, 1, 2))
+      expect(connection.latestFrame()).toEqual(Uint8Array.of(55, 0x80, 1, 2))
+      await connection.sendCommandSendAnonReq(publicKey, Uint8Array.of(4, 5))
+      expect(connection.latestFrame()).toEqual(concatBytes(byte(57), publicKey, Uint8Array.of(4, 5)))
+      await connection.sendCommandSetAutoAddConfig(0x0f, 12)
+      expect(connection.latestFrame()).toEqual(Uint8Array.of(58, 0x0f, 12))
+      await connection.sendCommandSetAutoAddConfig(0x01)
+      expect(connection.latestFrame()).toEqual(Uint8Array.of(58, 0x01))
+      await connection.sendCommandGetAutoAddConfig()
+      expect(connection.latestFrame()).toEqual(byte(59))
+      await connection.sendCommandGetAllowedRepeatFreq()
+      expect(connection.latestFrame()).toEqual(byte(60))
+      await connection.sendCommandSetPathHashMode(2)
+      expect(connection.latestFrame()).toEqual(Uint8Array.of(61, 0, 2))
+      await connection.sendCommandSetDefaultFloodScope('local', key)
+      expect(connection.latestFrame()).toEqual(concatBytes(byte(63), cString('local', 31), key))
+      await connection.sendCommandSetDefaultFloodScope(null)
+      expect(connection.latestFrame()).toEqual(byte(63))
+      await connection.sendCommandGetDefaultFloodScope()
+      expect(connection.latestFrame()).toEqual(byte(64))
+      await connection.sendCommandSendRawPacket(3, Uint8Array.of(0xaa, 0xbb))
+      expect(connection.latestFrame()).toEqual(Uint8Array.of(65, 3, 0xaa, 0xbb))
+    })
   })
 
   describe('frame parsing', () => {
@@ -959,6 +1007,245 @@ describe('Connection', () => {
       )
       expect(newAdvert.advName).toBe('Manual')
       expect(newAdvert.publicKey).toEqual(sequence(32, 0x44))
+    })
+
+    it('parses control data pushes with routed and zero-length paths', async () => {
+      const routed = await waitForEvent<Record<string, unknown>>(
+        connection,
+        Constants.PushCodes.ControlData,
+        () => {
+          connection.dispatch(
+            frame(
+              Constants.PushCodes.ControlData,
+              byte(-9),
+              byte(-101),
+              byte(2),
+              Uint8Array.of(0xaa, 0xbb),
+              Uint8Array.of(1, 2, 3),
+            ),
+          )
+        },
+      )
+      expect(routed).toEqual({
+        lastSnr: -2.25,
+        lastRssi: -101,
+        pathLen: 2,
+        path: Uint8Array.of(0xaa, 0xbb),
+        payload: Uint8Array.of(1, 2, 3),
+      })
+
+      const zeroPath = await waitForEvent<Record<string, unknown>>(
+        connection,
+        Constants.PushCodes.ControlData,
+        () => {
+          connection.dispatch(
+            frame(Constants.PushCodes.ControlData, byte(12), byte(-80), byte(0), Uint8Array.of(0x90)),
+          )
+        },
+      )
+      expect(zeroPath).toEqual({
+        lastSnr: 3,
+        lastRssi: -80,
+        pathLen: 0,
+        path: new Uint8Array(),
+        payload: Uint8Array.of(0x90),
+      })
+    })
+
+    it('emits contacts-full pushes without a payload', async () => {
+      const contactsFull = await waitForEvent<Record<string, never>>(
+        connection,
+        Constants.PushCodes.ContactsFull,
+        () => {
+          connection.dispatch(frame(Constants.PushCodes.ContactsFull))
+        },
+      )
+
+      expect(contactsFull).toEqual({})
+    })
+
+    it('rejects malformed control data pushes without emitting them', async () => {
+      const listener = vi.fn()
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+      connection.on(Constants.PushCodes.ControlData, listener)
+
+      connection.dispatch(frame(Constants.PushCodes.ControlData, byte(1), byte(2)))
+      connection.dispatch(
+        frame(Constants.PushCodes.ControlData, byte(1), byte(2), byte(3), Uint8Array.of(0xaa, 0xbb)),
+      )
+
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      expect(listener).not.toHaveBeenCalled()
+      expect(logSpy).toHaveBeenNthCalledWith(1, 'malformed control data push: missing radio metadata')
+      expect(logSpy).toHaveBeenNthCalledWith(
+        2,
+        'malformed control data push: path length 3 exceeds remaining frame length 2',
+      )
+    })
+
+    it('parses remaining current push notifications', async () => {
+      const prefix = sequence(6, 0x31)
+      const loginFail = await waitForEvent<Record<string, unknown>>(
+        connection, Constants.PushCodes.LoginFail,
+        () => connection.dispatch(frame(Constants.PushCodes.LoginFail, byte(0), prefix)),
+      )
+      expect(loginFail).toEqual({ reserved: 0, pubKeyPrefix: prefix })
+
+      const deletedKey = sequence(32, 0x61)
+      const deleted = await waitForEvent<Record<string, unknown>>(
+        connection, Constants.PushCodes.ContactDeleted,
+        () => connection.dispatch(frame(Constants.PushCodes.ContactDeleted, deletedKey)),
+      )
+      expect(deleted).toEqual({ publicKey: deletedKey })
+
+      const discovered = await waitForEvent<Record<string, unknown>>(
+        connection, Constants.PushCodes.PathDiscoveryResponse,
+        () => connection.dispatch(frame(
+          Constants.PushCodes.PathDiscoveryResponse, byte(0), prefix,
+          byte(2), Uint8Array.of(0xaa, 0xbb), byte(1), Uint8Array.of(0xcc),
+        )),
+      )
+      expect(discovered).toEqual({
+        reserved: 0, pubKeyPrefix: prefix,
+        outPathLen: 2, outPath: Uint8Array.of(0xaa, 0xbb),
+        inPathLen: 1, inPath: Uint8Array.of(0xcc),
+      })
+    })
+
+    it('parses V3 message responses with radio metadata', async () => {
+      const contact = await waitForEvent<Record<string, unknown>>(
+        connection, Constants.ResponseCodes.ContactMsgRecvV3,
+        () => connection.dispatch(frame(
+          Constants.ResponseCodes.ContactMsgRecvV3,
+          byte(-7), byte(0), byte(0), sequence(6, 0x81), byte(3), byte(0), uint32LE(123), utf8('direct'),
+        )),
+      )
+      expect(contact).toEqual({
+        snr: -1.75, reserved: Uint8Array.of(0, 0), pubKeyPrefix: sequence(6, 0x81),
+        pathLen: 3, txtType: 0, senderTimestamp: 123, text: 'direct',
+      })
+
+      const channel = await waitForEvent<Record<string, unknown>>(
+        connection, Constants.ResponseCodes.ChannelMsgRecvV3,
+        () => connection.dispatch(frame(
+          Constants.ResponseCodes.ChannelMsgRecvV3,
+          byte(9), byte(1), byte(2), byte(4), byte(0xff), byte(0), uint32LE(456), utf8('group'),
+        )),
+      )
+      expect(channel).toEqual({
+        snr: 2.25, reserved: Uint8Array.of(1, 2), channelIdx: 4,
+        pathLen: 0xff, txtType: 0, senderTimestamp: 456, text: 'group',
+      })
+    })
+
+    it('parses configuration and frequency responses', async () => {
+      const customVars = await waitForEvent<Record<string, unknown>>(
+        connection, Constants.ResponseCodes.CustomVars,
+        () => connection.dispatch(frame(Constants.ResponseCodes.CustomVars, utf8('gps:1,temp:20'))),
+      )
+      expect(customVars).toEqual({ value: 'gps:1,temp:20' })
+
+      const tuning = await waitForEvent<Record<string, unknown>>(
+        connection, Constants.ResponseCodes.TuningParams,
+        () => connection.dispatch(frame(Constants.ResponseCodes.TuningParams, uint32LE(1_250), uint32LE(3_500))),
+      )
+      expect(tuning).toEqual({
+        rxDelayBase: 1.25, airtimeFactor: 3.5,
+        rxDelayBaseRaw: 1_250, airtimeFactorRaw: 3_500,
+      })
+
+      const autoAdd = await waitForEvent<Record<string, unknown>>(
+        connection, Constants.ResponseCodes.AutoAddConfig,
+        () => connection.dispatch(frame(Constants.ResponseCodes.AutoAddConfig, byte(0x0f), byte(12))),
+      )
+      expect(autoAdd).toEqual({ config: 0x0f, maxHops: 12 })
+
+      const ranges = await waitForEvent<Record<string, unknown>>(
+        connection, Constants.ResponseCodes.AllowedRepeatFreq,
+        () => connection.dispatch(frame(
+          Constants.ResponseCodes.AllowedRepeatFreq,
+          uint32LE(433_000), uint32LE(434_000), uint32LE(918_000), uint32LE(918_000),
+        )),
+      )
+      expect(ranges).toEqual({ ranges: [
+        { lowerFreq: 433_000, upperFreq: 434_000 },
+        { lowerFreq: 918_000, upperFreq: 918_000 },
+      ] })
+
+      const scopeKey = sequence(16, 0x91)
+      const scope = await waitForEvent<Record<string, unknown>>(
+        connection, Constants.ResponseCodes.DefaultFloodScope,
+        () => connection.dispatch(frame(Constants.ResponseCodes.DefaultFloodScope, cString('local', 31), scopeKey)),
+      )
+      expect(scope).toEqual({ name: 'local', key: scopeKey })
+
+      const emptyScope = await waitForEvent<Record<string, unknown>>(
+        connection, Constants.ResponseCodes.DefaultFloodScope,
+        () => connection.dispatch(frame(Constants.ResponseCodes.DefaultFloodScope)),
+      )
+      expect(emptyScope).toEqual({ name: null, key: null })
+
+      const unterminatedScope = await waitForEvent<Record<string, unknown>>(
+        connection, Constants.ResponseCodes.DefaultFloodScope,
+        () => connection.dispatch(frame(
+          Constants.ResponseCodes.DefaultFloodScope, utf8('x'.repeat(31)), scopeKey,
+        )),
+      )
+      expect(unterminatedScope).toEqual({ name: '', key: scopeKey })
+    })
+
+    it('parses current device, storage and login metadata while retaining legacy compatibility', async () => {
+      const battery = await waitForEvent<Record<string, unknown>>(
+        connection, Constants.ResponseCodes.BatteryVoltage,
+        () => connection.dispatch(frame(
+          Constants.ResponseCodes.BatteryVoltage, uint16LE(3_700), uint32LE(120), uint32LE(512),
+        )),
+      )
+      expect(battery).toEqual({ batteryMilliVolts: 3_700, storageUsedKb: 120, storageTotalKb: 512 })
+
+      const device = await waitForEvent<Record<string, unknown>>(
+        connection, Constants.ResponseCodes.DeviceInfo,
+        () => connection.dispatch(frame(
+          Constants.ResponseCodes.DeviceInfo,
+          byte(16), byte(50), byte(8), uint32LE(123456), cString('15 Aug 2026', 12),
+          cString('T-Deck Plus', 40), cString('1.16.0', 20), byte(1), byte(2),
+        )),
+      )
+      expect(device).toEqual({
+        firmwareVer: 16,
+        reserved: concatBytes(byte(50), byte(8), uint32LE(123456)),
+        maxContacts: 100,
+        maxChannels: 8,
+        blePin: 123456,
+        firmware_build_date: '15 Aug 2026',
+        manufacturerModel: 'T-Deck Plus',
+        semanticVersion: '1.16.0',
+        clientRepeat: true,
+        pathHashMode: 2,
+      })
+
+      const deviceWithoutOptionalFields = await waitForEvent<Record<string, unknown>>(
+        connection, Constants.ResponseCodes.DeviceInfo,
+        () => connection.dispatch(frame(
+          Constants.ResponseCodes.DeviceInfo,
+          byte(8), byte(1), byte(2), uint32LE(0), cString('build', 12),
+          utf8('M'.repeat(40)), utf8('V'.repeat(20)),
+        )),
+      )
+      expect(deviceWithoutOptionalFields).toMatchObject({
+        manufacturerModel: '', semanticVersion: '', maxContacts: 2, maxChannels: 2,
+      })
+
+      const prefix = sequence(6, 0x41)
+      const login = await waitForEvent<Record<string, unknown>>(
+        connection, Constants.PushCodes.LoginSuccess,
+        () => connection.dispatch(frame(
+          Constants.PushCodes.LoginSuccess, byte(1), prefix, uint32LE(123), byte(7), byte(16),
+        )),
+      )
+      expect(login).toEqual({
+        reserved: 1, pubKeyPrefix: prefix, tag: 123, permissions: 7, firmwareVer: 16,
+      })
     })
 
     it('logs unexpected channel info lengths and unhandled frame codes', () => {

@@ -418,6 +418,8 @@ class Connection extends ConnectionFrameHandlers {
             const cleanup = () => {
                 this.off(Constants.ResponseCodes.ContactMsgRecv, onContactMessageReceived);
                 this.off(Constants.ResponseCodes.ChannelMsgRecv, onChannelMessageReceived);
+                this.off(Constants.ResponseCodes.ContactMsgRecvV3, onContactMessageReceived);
+                this.off(Constants.ResponseCodes.ChannelMsgRecvV3, onChannelMessageReceived);
                 this.off(Constants.ResponseCodes.ChannelDataRecv, onChannelDataReceived);
                 this.off(Constants.ResponseCodes.NoMoreMessages, onNoMoreMessagesReceived);
             };
@@ -450,6 +452,8 @@ class Connection extends ConnectionFrameHandlers {
 
             this.on(Constants.ResponseCodes.ContactMsgRecv, onContactMessageReceived);
             this.on(Constants.ResponseCodes.ChannelMsgRecv, onChannelMessageReceived);
+            this.on(Constants.ResponseCodes.ContactMsgRecvV3, onContactMessageReceived);
+            this.on(Constants.ResponseCodes.ChannelMsgRecvV3, onChannelMessageReceived);
             this.on(Constants.ResponseCodes.ChannelDataRecv, onChannelDataReceived);
             this.on(Constants.ResponseCodes.NoMoreMessages, onNoMoreMessagesReceived);
 
