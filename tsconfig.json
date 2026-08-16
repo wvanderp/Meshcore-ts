@@ -23,7 +23,6 @@
   },
   "include": ["src"],
   "exclude": [
-    "src/**/*.test.ts",
     "src/connection/web_ble_connection.ts"
   ]
 }

@@ -1,8 +1,8 @@
-import BufferWriter from "../buffer_writer";
-import Constants from "../constants";
+import BufferWriter from '../buffer_writer';
+import Constants from '../constants';
 
-import ConnectionBase from "./connection_base";
-import type { ByteArrayLike } from "./connection_types";
+import ConnectionBase from './connection_base';
+import type { ByteArrayLike } from './connection_types';
 
 /**
  * Provides high-level command methods for the MeshCore companion protocol.
@@ -25,7 +25,7 @@ class ConnectionCommands extends ConnectionBase {
         data.writeByte(Constants.CommandCodes.AppStart);
         data.writeByte(1);
         data.writeBytes(new Uint8Array(6));
-        data.writeString("test");
+        data.writeString('test');
         await this.sendToRadioFrame(data.toBytes());
     }
 
@@ -53,7 +53,7 @@ class ConnectionCommands extends ConnectionBase {
     async sendCommandGetContacts(since?: number): Promise<void> {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.GetContacts);
-        if(since){
+        if (since){
             data.writeUInt32LE(since);
         }
         await this.sendToRadioFrame(data.toBytes());
@@ -164,7 +164,7 @@ class ConnectionCommands extends ConnectionBase {
     async sendCommandExportContact(pubKey: ByteArrayLike | null = null): Promise<void> {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.ExportContact);
-        if(pubKey){
+        if (pubKey){
             data.writeBytes(pubKey);
         }
         await this.sendToRadioFrame(data.toBytes());
@@ -180,7 +180,7 @@ class ConnectionCommands extends ConnectionBase {
     async sendCommandReboot(): Promise<void> {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.Reboot);
-        data.writeString("reboot");
+        data.writeString('reboot');
         await this.sendToRadioFrame(data.toBytes());
     }
 
@@ -297,7 +297,7 @@ class ConnectionCommands extends ConnectionBase {
     async sendCommandFactoryReset(): Promise<void> {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.FactoryReset);
-        data.writeString("reset");
+        data.writeString('reset');
         await this.sendToRadioFrame(data.toBytes());
     }
 
@@ -340,7 +340,7 @@ class ConnectionCommands extends ConnectionBase {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SetAutoAddConfig);
         data.writeByte(config);
-        if(maxHops != null){
+        if (maxHops != null){
             data.writeByte(maxHops);
         }
         await this.sendToRadioFrame(data.toBytes());
@@ -428,7 +428,7 @@ class ConnectionCommands extends ConnectionBase {
     async sendCommandSetDefaultFloodScope(name: string | null, key?: ByteArrayLike): Promise<void> {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SetDefaultFloodScope);
-        if(name != null && key != null){
+        if (name != null && key != null){
             data.writeCString(name, 31);
             data.writeBytes(key);
         }
@@ -450,7 +450,7 @@ class ConnectionCommands extends ConnectionBase {
     private async sendCodeAndBytes(code: number, bytes?: ByteArrayLike): Promise<void> {
         const data = new BufferWriter();
         data.writeByte(code);
-        if(bytes != null){
+        if (bytes != null){
             data.writeBytes(bytes);
         }
         await this.sendToRadioFrame(data.toBytes());

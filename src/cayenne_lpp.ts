@@ -1,4 +1,4 @@
-import BufferReader from "./buffer_reader";
+import BufferReader from './buffer_reader';
 
 type CayenneTelemetryValue = number | {
     latitude: number;
@@ -62,24 +62,24 @@ class CayenneLpp {
         const buffer = new BufferReader(bytes);
         const telemetry: CayenneTelemetryRecord[] = [];
 
-        while(buffer.getRemainingBytesCount() >= 2){ // need at least 2 more bytes to get channel and type
+        while (buffer.getRemainingBytesCount() >= 2){ // need at least 2 more bytes to get channel and type
 
             const channel = buffer.readUInt8();
             const type = buffer.readUInt8();
 
             // stop parsing if channel and type are zero, as there seems to be garbage bytes???
-            if(channel === 0 && type === 0){
+            if (channel === 0 && type === 0){
                 break;
             }
 
-            switch(type){
+            switch (type){
                 case this.LPP_GENERIC_SENSOR: {
                     const value = buffer.readUInt32BE();
                     // console.log(`[CayenneLpp] parsed LPP_GENERIC_SENSOR=${value}`);
                     telemetry.push({
-                        "channel": channel,
-                        "type": type,
-                        "value": value,
+                        'channel': channel,
+                        'type': type,
+                        'value': value,
                     });
                     break;
                 }
@@ -87,9 +87,9 @@ class CayenneLpp {
                     const lux = buffer.readInt16BE();
                     // console.log(`[CayenneLpp] parsed LPP_LUMINOSITY=${lux}`);
                     telemetry.push({
-                        "channel": channel,
-                        "type": type,
-                        "value": lux,
+                        'channel': channel,
+                        'type': type,
+                        'value': lux,
                     });
                     break;
                 }
@@ -97,9 +97,9 @@ class CayenneLpp {
                     const presence = buffer.readUInt8();
                     // console.log(`[CayenneLpp] parsed LPP_PRESENCE=${presence}`);
                     telemetry.push({
-                        "channel": channel,
-                        "type": type,
-                        "value": presence,
+                        'channel': channel,
+                        'type': type,
+                        'value': presence,
                     });
                     break;
                 }
@@ -107,9 +107,9 @@ class CayenneLpp {
                     const temperature = buffer.readInt16BE() / 10;
                     // console.log(`[CayenneLpp] parsed LPP_TEMPERATURE=${temperature}`);
                     telemetry.push({
-                        "channel": channel,
-                        "type": type,
-                        "value": temperature,
+                        'channel': channel,
+                        'type': type,
+                        'value': temperature,
                     });
                     break;
                 }
@@ -117,9 +117,9 @@ class CayenneLpp {
                     const relativeHumidity = buffer.readUInt8() / 2;
                     // console.log(`[CayenneLpp] parsed LPP_RELATIVE_HUMIDITY=${relativeHumidity}`);
                     telemetry.push({
-                        "channel": channel,
-                        "type": type,
-                        "value": relativeHumidity,
+                        'channel': channel,
+                        'type': type,
+                        'value': relativeHumidity,
                     });
                     break;
                 }
@@ -127,9 +127,9 @@ class CayenneLpp {
                     const barometricPressure = buffer.readUInt16BE() / 10;
                     // console.log(`[CayenneLpp] parsed LPP_BAROMETRIC_PRESSURE=${barometricPressure}`);
                     telemetry.push({
-                        "channel": channel,
-                        "type": type,
-                        "value": barometricPressure,
+                        'channel': channel,
+                        'type': type,
+                        'value': barometricPressure,
                     });
                     break;
                 }
@@ -140,9 +140,9 @@ class CayenneLpp {
                     const voltage = buffer.readInt16BE() / 100;
                     // console.log(`[CayenneLpp] parsed LPP_VOLTAGE=${voltage}`);
                     telemetry.push({
-                        "channel": channel,
-                        "type": type,
-                        "value": voltage,
+                        'channel': channel,
+                        'type': type,
+                        'value': voltage,
                     });
                     break;
                 }
@@ -153,9 +153,9 @@ class CayenneLpp {
                     const current = buffer.readInt16BE() / 1000;
                     // console.log(`[CayenneLpp] parsed LPP_CURRENT=${current}`);
                     telemetry.push({
-                        "channel": channel,
-                        "type": type,
-                        "value": current,
+                        'channel': channel,
+                        'type': type,
+                        'value': current,
                     });
                     break;
                 }
@@ -163,9 +163,9 @@ class CayenneLpp {
                     const percentage = buffer.readUInt8();
                     // console.log(`[CayenneLpp] parsed LPP_PERCENTAGE=${percentage}`);
                     telemetry.push({
-                        "channel": channel,
-                        "type": type,
-                        "value": percentage,
+                        'channel': channel,
+                        'type': type,
+                        'value': percentage,
                     });
                     break;
                 }
@@ -173,9 +173,9 @@ class CayenneLpp {
                     const concentration = buffer.readUInt16BE();
                     // console.log(`[CayenneLpp] parsed LPP_CONCENTRATION=${concentration}`);
                     telemetry.push({
-                        "channel": channel,
-                        "type": type,
-                        "value": concentration,
+                        'channel': channel,
+                        'type': type,
+                        'value': concentration,
                     });
                     break;
                 }
@@ -183,9 +183,9 @@ class CayenneLpp {
                     const power = buffer.readUInt16BE();
                     // console.log(`[CayenneLpp] parsed LPP_POWER=${power}`);
                     telemetry.push({
-                        "channel": channel,
-                        "type": type,
-                        "value": power,
+                        'channel': channel,
+                        'type': type,
+                        'value': power,
                     });
                     break;
                 }
@@ -195,9 +195,9 @@ class CayenneLpp {
                     const altitude = buffer.readInt24BE() / 100;
                     // console.log(`[CayenneLpp] parsed LPP_GPS=${latitude},${longitude},${altitude}`);
                     telemetry.push({
-                        "channel": channel,
-                        "type": type,
-                        "value": {
+                        'channel': channel,
+                        'type': type,
+                        'value': {
                             latitude: latitude,
                             longitude: longitude,
                             altitude: altitude,

@@ -71,7 +71,7 @@ class BufferWriter {
         const encodedString = new TextEncoder().encode(string);
 
         // copy in string until we hit the max length, or we run out of string bytes
-        for(let i = 0; i < maxLength && i < encodedString.length; i++){
+        for (let i = 0; i < maxLength && i < encodedString.length; i++){
             bytes[i] = encodedString[i];
         }
 

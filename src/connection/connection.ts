@@ -1,11 +1,11 @@
-import BufferWriter from "../buffer_writer";
-import BufferReader from "../buffer_reader";
-import Constants from "../constants";
-import BufferUtils from "../buffer_utils";
-import Packet from "../packet";
-import RandomUtils from "../random_utils";
+import BufferWriter from '../buffer_writer';
+import BufferReader from '../buffer_reader';
+import Constants from '../constants';
+import BufferUtils from '../buffer_utils';
+import Packet from '../packet';
+import RandomUtils from '../random_utils';
 
-import ConnectionFrameHandlers from "./connection_frame_handlers";
+import ConnectionFrameHandlers from './connection_frame_handlers';
 import type {
     AdvertPathResponse,
     BatteryVoltageResponse,
@@ -34,7 +34,7 @@ import type {
     TelemetryResponsePush,
     TraceDataPush,
     WaitingMessageRecord,
-} from "./connection_types";
+} from './connection_types';
 
 type EventName = number | string;
 type EventListener = (...data: unknown[]) => void;
@@ -60,6 +60,11 @@ type SentThenPushOptions<TPush, TResult> = {
     extraTimeoutMillis?: number;
     onMismatch?: (response: TPush) => void;
     onSent?: (response: SentResponse) => void;
+};
+
+type MessageSyncRequest = {
+    resolve: (value: WaitingMessageRecord | null) => void;
+    reject: (reason?: unknown) => void;
 };
 
 function parseRepeaterStats(statusData: ByteArrayLike): RepeaterStats {
@@ -104,11 +109,14 @@ function parseRepeaterStats(statusData: ByteArrayLike): RepeaterStats {
  */
 class Connection extends ConnectionFrameHandlers {
 
+    private messageSyncActive = false;
+    private messageSyncQueue: MessageSyncRequest[] = [];
+
     private onDeferredOnce(event: EventName, handler: EventListener): EventListener {
         let called = false;
 
         const wrappedHandler: EventListener = (...data) => {
-            if(called){
+            if (called){
                 return;
             }
 
@@ -134,25 +142,25 @@ class Connection extends ConnectionFrameHandlers {
             const predicate = options.predicate ?? (() => true);
 
             const cleanup = () => {
-                if(timeoutHandler != null){
+                if (timeoutHandler != null){
                     clearTimeout(timeoutHandler);
                 }
 
-                for(const { event, handler } of listeners){
+                for (const { event, handler } of listeners){
                     this.off(event, handler);
                 }
             };
 
             const responseHandler: EventListener = (response) => {
                 const typedResponse = response as TResponse;
-                if(!predicate(typedResponse)){
+                if (!predicate(typedResponse)){
                     options.onMismatch?.(typedResponse);
                     return;
                 }
 
                 cleanup();
 
-                if(options.mapResponse){
+                if (options.mapResponse){
                     resolve(options.mapResponse(typedResponse));
                     return;
                 }
@@ -163,7 +171,7 @@ class Connection extends ConnectionFrameHandlers {
             this.on(responseEvent, responseHandler);
             listeners.push({ event: responseEvent, handler: responseHandler });
 
-            for(const rejectEvent of options.rejectEvents ?? []){
+            for (const rejectEvent of options.rejectEvents ?? []){
                 const rejectHandler: EventListener = () => {
                     cleanup();
                     reject(rejectEvent.reason);
@@ -173,7 +181,7 @@ class Connection extends ConnectionFrameHandlers {
                 listeners.push({ event: rejectEvent.event, handler: rejectHandler });
             }
 
-            if(options.timeoutMillis != null){
+            if (options.timeoutMillis != null){
                 timeoutHandler = setTimeout(() => {
                     cleanup();
                     reject();
@@ -182,7 +190,7 @@ class Connection extends ConnectionFrameHandlers {
 
             try {
                 await command();
-            } catch(error) {
+            } catch (error) {
                 cleanup();
                 reject(error);
             }
@@ -227,21 +235,19 @@ class Connection extends ConnectionFrameHandlers {
             /* c8 ignore next */
             const extraTimeoutMillis = options.extraTimeoutMillis ?? 1000;
             let timeoutHandler: ReturnType<typeof setTimeout> | undefined;
-            let sentListener: EventListener | undefined;
-            let errListener: EventListener | undefined;
 
             const cleanup = () => {
-                if(timeoutHandler != null){
+                if (timeoutHandler != null){
                     clearTimeout(timeoutHandler);
                 }
 
                 /* c8 ignore next */
-                if(errListener){
+                if (errListener){
                     this.off(Constants.ResponseCodes.Err, errListener);
                 }
 
                 /* c8 ignore next */
-                if(sentListener){
+                if (sentListener){
                     this.off(Constants.ResponseCodes.Sent, sentListener);
                 }
 
@@ -257,20 +263,20 @@ class Connection extends ConnectionFrameHandlers {
                 this.off(Constants.ResponseCodes.Err, onErr);
                 timeoutHandler = setTimeout(() => {
                     cleanup();
-                    reject("timeout");
+                    reject('timeout');
                 }, sentResponse.estTimeout + extraTimeoutMillis);
             };
 
             const onPush: EventListener = (response) => {
                 const typedResponse = response as TPush;
-                if(!options.isMatch(typedResponse)){
+                if (!options.isMatch(typedResponse)){
                     options.onMismatch?.(typedResponse);
                     return;
                 }
 
                 cleanup();
 
-                if(options.resolveWith){
+                if (options.resolveWith){
                     resolve(options.resolveWith(typedResponse));
                     return;
                 }
@@ -283,13 +289,13 @@ class Connection extends ConnectionFrameHandlers {
                 reject();
             };
 
-            errListener = this.onDeferredOnce(Constants.ResponseCodes.Err, onErr);
-            sentListener = this.onDeferredOnce(Constants.ResponseCodes.Sent, onSent);
+            const errListener = this.onDeferredOnce(Constants.ResponseCodes.Err, onErr);
+            const sentListener = this.onDeferredOnce(Constants.ResponseCodes.Sent, onSent);
             this.on(options.pushEvent, onPush);
 
             try {
                 await options.send();
-            } catch(error) {
+            } catch (error) {
                 cleanup();
                 reject(error);
             }
@@ -365,7 +371,7 @@ class Connection extends ConnectionFrameHandlers {
 
             try {
                 await this.sendCommandGetContacts();
-            } catch(error) {
+            } catch (error) {
                 cleanup();
                 reject(error);
             }
@@ -413,7 +419,7 @@ class Connection extends ConnectionFrameHandlers {
         });
     }
 
-    syncNextMessage(): Promise<WaitingMessageRecord | null> {
+    private syncNextMessageOnce(): Promise<WaitingMessageRecord | null> {
         return this.createPromise<WaitingMessageRecord | null>(async (resolve, reject) => {
             const cleanup = () => {
                 this.off(Constants.ResponseCodes.ContactMsgRecv, onContactMessageReceived);
@@ -459,19 +465,54 @@ class Connection extends ConnectionFrameHandlers {
 
             try {
                 await this.sendCommandSyncNextMessage();
-            } catch(error) {
+            } catch (error) {
                 cleanup();
                 reject(error);
             }
         });
     }
 
+    /**
+     * Retrieves one queued message from the companion firmware.
+     *
+     * Concurrent calls are serialized because the companion protocol does not
+     * tag message-sync responses. A failed request releases the queue so the
+     * next caller can still retrieve a later message.
+     */
+    syncNextMessage(): Promise<WaitingMessageRecord | null> {
+        return new Promise<WaitingMessageRecord | null>((resolve, reject) => {
+            this.messageSyncQueue.push({ resolve, reject });
+            this.processNextMessageSync();
+        });
+    }
+
+    private processNextMessageSync(): void {
+        if (this.messageSyncActive){
+            return;
+        }
+
+        const request = this.messageSyncQueue.shift();
+        if (!request){
+            return;
+        }
+
+        this.messageSyncActive = true;
+        void this.syncNextMessageOnce().then(request.resolve, request.reject).finally(() => {
+            this.messageSyncActive = false;
+            this.processNextMessageSync();
+        });
+    }
+
+    /**
+     * Drains the companion firmware's queued contact, channel, and channel-data messages.
+     * Call this after receiving {@link Constants.PushCodes.MsgWaiting}.
+     */
     async getWaitingMessages(): Promise<WaitingMessageRecord[]> {
         const waitingMessages: WaitingMessageRecord[] = [];
 
-        while(true){
+        while (true){
             const message = await this.syncNextMessage();
-            if(!message){
+            if (!message){
                 break;
             }
 
@@ -533,7 +574,7 @@ class Connection extends ConnectionFrameHandlers {
                 const maxPathLength = 64;
                 const outPath = new Uint8Array(maxPathLength);
 
-                for(let i = 0; i < path.length && i < maxPathLength; i++){
+                for (let i = 0; i < path.length && i < maxPathLength; i++){
                     outPath[i] = path[i];
                 }
 
@@ -542,7 +583,7 @@ class Connection extends ConnectionFrameHandlers {
 
                 await this.addOrUpdateContact(contact.publicKey, contact.type, contact.flags, contact.outPathLen, contact.outPath, contact.advName, contact.lastAdvert, contact.advLat, contact.advLon);
                 resolve();
-            } catch(error) {
+            } catch (error) {
                 reject(error);
             }
         });
@@ -556,11 +597,9 @@ class Connection extends ConnectionFrameHandlers {
 
     reboot(): Promise<void> {
         return this.createPromise(async (resolve, reject) => {
-            let timeoutHandler: ReturnType<typeof setTimeout> | undefined;
-
             const cleanup = () => {
                 /* c8 ignore next */
-                if(timeoutHandler != null){
+                if (timeoutHandler != null){
                     clearTimeout(timeoutHandler);
                 }
                 this.off(Constants.ResponseCodes.Err, onErr);
@@ -571,7 +610,7 @@ class Connection extends ConnectionFrameHandlers {
                 reject();
             };
 
-            timeoutHandler = setTimeout(() => {
+            const timeoutHandler = setTimeout(() => {
                 cleanup();
                 resolve();
             }, 1000);
@@ -580,7 +619,7 @@ class Connection extends ConnectionFrameHandlers {
 
             try {
                 await this.sendCommandReboot();
-            } catch(error) {
+            } catch (error) {
                 cleanup();
                 reject(error);
             }
@@ -605,7 +644,7 @@ class Connection extends ConnectionFrameHandlers {
             async () => {
                 await this.sendCommandExportPrivateKey();
             },
-            "disabled",
+            'disabled',
         );
     }
 
@@ -615,7 +654,7 @@ class Connection extends ConnectionFrameHandlers {
         }, {
             rejectEvents: [
                 { event: Constants.ResponseCodes.Err },
-                { event: Constants.ResponseCodes.Disabled, reason: "disabled" },
+                { event: Constants.ResponseCodes.Disabled, reason: 'disabled' },
             ],
         });
     }
@@ -633,7 +672,7 @@ class Connection extends ConnectionFrameHandlers {
                 return BufferUtils.areBuffersEqual(publicKeyPrefix, response.pubKeyPrefix);
             },
             onMismatch: () => {
-                console.log("onLoginSuccess is not for this login request, ignoring...");
+                console.log('onLoginSuccess is not for this login request, ignoring...');
             },
         });
     }
@@ -651,7 +690,7 @@ class Connection extends ConnectionFrameHandlers {
                 return BufferUtils.areBuffersEqual(publicKeyPrefix, response.pubKeyPrefix);
             },
             onMismatch: () => {
-                console.log("onStatusResponsePush is not for this status request, ignoring...");
+                console.log('onStatusResponsePush is not for this status request, ignoring...');
             },
             resolveWith: (response) => {
                 return parseRepeaterStats(response.statusData);
@@ -672,7 +711,7 @@ class Connection extends ConnectionFrameHandlers {
                 return BufferUtils.areBuffersEqual(publicKeyPrefix, response.pubKeyPrefix);
             },
             onMismatch: () => {
-                console.log("onTelemetryResponsePush is not for this telemetry request, ignoring...");
+                console.log('onTelemetryResponsePush is not for this telemetry request, ignoring...');
             },
         });
     }
@@ -693,8 +732,8 @@ class Connection extends ConnectionFrameHandlers {
                 return tag === response.tag;
             },
             onMismatch: (response) => {
-                if(tag != null && tag !== response.tag){
-                    console.log("onBinaryResponse is not for this request tag, ignoring...");
+                if (tag != null && tag !== response.tag){
+                    console.log('onBinaryResponse is not for this request tag, ignoring...');
                 }
             },
             resolveWith: (response) => {
@@ -754,7 +793,7 @@ class Connection extends ConnectionFrameHandlers {
                 let timeoutHandler: ReturnType<typeof setTimeout> | undefined;
 
                 const cleanup = () => {
-                    if(timeoutHandler != null){
+                    if (timeoutHandler != null){
                         clearTimeout(timeoutHandler);
                     }
 
@@ -768,11 +807,11 @@ class Connection extends ConnectionFrameHandlers {
                     const durationMillis = endMillis - startMillis;
                     const packet = Packet.fromBytes(logRxData.raw);
 
-                    if(packet.payload_type !== Packet.PAYLOAD_TYPE_RAW_CUSTOM){
+                    if (packet.payload_type !== Packet.PAYLOAD_TYPE_RAW_CUSTOM){
                         return;
                     }
 
-                    if(!BufferUtils.areBuffersEqual(packet.payload, rawBytes)){
+                    if (!BufferUtils.areBuffersEqual(packet.payload, rawBytes)){
                         return;
                     }
 
@@ -792,15 +831,15 @@ class Connection extends ConnectionFrameHandlers {
                 this.on(Constants.ResponseCodes.Err, onErr);
                 this.on(Constants.PushCodes.LogRxData, onLogRxDataPush);
 
-                if(timeoutMillis != null){
+                if (timeoutMillis != null){
                     timeoutHandler = setTimeout(() => {
                         cleanup();
-                        reject("timeout");
+                        reject('timeout');
                     }, timeoutMillis);
                 }
 
                 await this.sendCommandSendRawData(contactPublicKey.subarray(0, 1), rawBytes);
-            } catch(error) {
+            } catch (error) {
                 reject(error);
             }
         });
@@ -819,14 +858,14 @@ class Connection extends ConnectionFrameHandlers {
     }
 
     async deleteChannel(channelIdx: number): Promise<void> {
-        return await this.setChannel(channelIdx, "", new Uint8Array(16));
+        return await this.setChannel(channelIdx, '', new Uint8Array(16));
     }
 
     async getChannels(): Promise<MeshChannelRecord[]> {
         let channelIdx = 0;
         const channels: MeshChannelRecord[] = [];
 
-        while(true){
+        while (true){
             try {
                 const channel = await this.getChannel(channelIdx);
                 channels.push(channel);
@@ -879,7 +918,7 @@ class Connection extends ConnectionFrameHandlers {
             };
 
             const handleOk = async () => {
-                if(bufferReader.getRemainingBytesCount() > 0){
+                if (bufferReader.getRemainingBytesCount() > 0){
                     await sendNextChunk();
                     return;
                 }
@@ -894,8 +933,8 @@ class Connection extends ConnectionFrameHandlers {
             const handleSignStart = async (response: SignStartResponse) => {
                 this.off(Constants.ResponseCodes.SignStart, onSignStart);
 
-                if(bufferReader.getRemainingBytesCount() > response.maxSignDataLen){
-                    rejectWithCleanup("data_too_long");
+                if (bufferReader.getRemainingBytesCount() > response.maxSignDataLen){
+                    rejectWithCleanup('data_too_long');
                     return;
                 }
 
@@ -923,7 +962,7 @@ class Connection extends ConnectionFrameHandlers {
 
             try {
                 await this.sendCommandSignStart();
-            } catch(error) {
+            } catch (error) {
                 cleanup();
                 reject(error);
             }
@@ -943,7 +982,7 @@ class Connection extends ConnectionFrameHandlers {
                 return response.tag === tag;
             },
             onMismatch: () => {
-                console.log("ignoring trace data for a different trace request");
+                console.log('ignoring trace data for a different trace request');
             },
         });
     }
@@ -984,7 +1023,7 @@ class Connection extends ConnectionFrameHandlers {
         const resultsCount = bufferReader.readUInt16LE();
 
         const neighbours: MeshNeighbourRecord[] = [];
-        for(let i = 0; i < resultsCount; i++){
+        for (let i = 0; i < resultsCount; i++){
             const publicKeyPrefix = bufferReader.readBytes(pubKeyPrefixLength);
             const heardSecondsAgo = bufferReader.readUInt32LE();
             const snr = bufferReader.readInt8() / 4;

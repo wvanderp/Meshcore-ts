@@ -1,4 +1,4 @@
-import SerialConnection from "./serial_connection";
+import SerialConnection from './serial_connection';
 
 interface WebSerialPortFilter {
     usbVendorId?: number;
@@ -34,31 +34,31 @@ function getSerialApi(): WebSerialApi | null {
 }
 
 function getErrorMessage(error: unknown): string {
-    if(error instanceof Error && error.message){
+    if (error instanceof Error && error.message){
         return error.message;
     }
 
-    if(typeof error === "string"){
+    if (typeof error === 'string'){
         return error;
     }
 
-    return "Unknown serial error.";
+    return 'Unknown serial error.';
 }
 
 function getErrorName(error: unknown): string {
-    return error instanceof Error ? error.name : "";
+    return error instanceof Error ? error.name : '';
 }
 
 function isCancellationError(error: unknown): boolean {
     const message = getErrorMessage(error).toLowerCase();
     const name = getErrorName(error);
-    return name === "AbortError" || name === "NotFoundError" || message.includes("no port selected") || message.includes("cancel") || message.includes("user aborted");
+    return name === 'AbortError' || name === 'NotFoundError' || message.includes('no port selected') || message.includes('cancel') || message.includes('user aborted');
 }
 
 function shouldRetryOpen(error: unknown): boolean {
     const message = getErrorMessage(error).toLowerCase();
     const name = getErrorName(error);
-    return name === "InvalidStateError" || message.includes("already open") || message.includes("failed to open serial port");
+    return name === 'InvalidStateError' || message.includes('already open') || message.includes('failed to open serial port');
 }
 
 function isPortOpen(serialPort: WebSerialPort): boolean {
@@ -74,22 +74,22 @@ async function closePortQuietly(serialPort: WebSerialPort): Promise<void> {
 }
 
 function toOpenError(error: unknown): Error {
-    if(isCancellationError(error)){
-        return error instanceof Error ? error : new Error("No port selected by the user.");
+    if (isCancellationError(error)){
+        return error instanceof Error ? error : new Error('No port selected by the user.');
     }
 
     const message = getErrorMessage(error).toLowerCase();
     const name = getErrorName(error);
 
-    if(name === "InvalidStateError" || message.includes("already open")){
-        return new Error("The selected serial port is already open. Close other MeshTrace tabs or any serial tools using the device, then try again.");
+    if (name === 'InvalidStateError' || message.includes('already open')){
+        return new Error('The selected serial port is already open. Close other MeshTrace tabs or any serial tools using the device, then try again.');
     }
 
-    if(name === "NetworkError" || message.includes("failed to open serial port") || message.includes("access denied") || message.includes("permission")){
-        return new Error("MeshTrace could not open the selected serial port. Close other apps that may be using the device, unplug and reconnect it if needed, then try again.");
+    if (name === 'NetworkError' || message.includes('failed to open serial port') || message.includes('access denied') || message.includes('permission')){
+        return new Error('MeshTrace could not open the selected serial port. Close other apps that may be using the device, unplug and reconnect it if needed, then try again.');
     }
 
-    return error instanceof Error ? error : new Error("Failed to open the selected serial port.");
+    return error instanceof Error ? error : new Error('Failed to open the selected serial port.');
 }
 
 /**
@@ -120,8 +120,8 @@ class WebSerialConnection extends SerialConnection {
 
         super();
 
-        if(!serialPort.readable || !serialPort.writable){
-            throw new Error("Selected serial port is not open.");
+        if (!serialPort.readable || !serialPort.writable){
+            throw new Error('Selected serial port is not open.');
         }
 
         this.serialPort = serialPort;
@@ -134,7 +134,7 @@ class WebSerialConnection extends SerialConnection {
         void this.readLoop();
 
         // listen for disconnect
-        this.serialPort.addEventListener("disconnect", this.disconnectHandler);
+        this.serialPort.addEventListener('disconnect', this.disconnectHandler);
 
         // fire connected callback after constructor has returned
         setTimeout(async () => {
@@ -148,8 +148,8 @@ class WebSerialConnection extends SerialConnection {
         const serialApi = getSerialApi();
 
         // ensure browser supports web serial
-        if(!serialApi){
-            throw new Error("Web Serial is not supported in this browser.");
+        if (!serialApi){
+            throw new Error('Web Serial is not supported in this browser.');
         }
 
         // ask user to select device
@@ -157,7 +157,7 @@ class WebSerialConnection extends SerialConnection {
             filters: [],
         });
 
-        if(isPortOpen(serialPort)){
+        if (isPortOpen(serialPort)){
             try {
                 return new WebSerialConnection(serialPort);
             } catch {
@@ -168,13 +168,13 @@ class WebSerialConnection extends SerialConnection {
         // open port
         try {
             await serialPort.open(serialPortOptions);
-        } catch(error) {
-            if(shouldRetryOpen(error) || isPortOpen(serialPort)){
+        } catch (error) {
+            if (shouldRetryOpen(error) || isPortOpen(serialPort)){
                 await closePortQuietly(serialPort);
 
                 try {
                     await serialPort.open(serialPortOptions);
-                } catch(retryError) {
+                } catch (retryError) {
                     throw toOpenError(retryError);
                 }
             } else {
@@ -188,12 +188,12 @@ class WebSerialConnection extends SerialConnection {
 
     async close() {
 
-        if(this.isClosing){
+        if (this.isClosing){
             return;
         }
 
         this.isClosing = true;
-        this.serialPort.removeEventListener("disconnect", this.disconnectHandler);
+        this.serialPort.removeEventListener('disconnect', this.disconnectHandler);
 
         try {
             await this.reader.cancel();
@@ -228,11 +228,11 @@ class WebSerialConnection extends SerialConnection {
 
     async readLoop() {
         try {
-            while(true){
+            while (true){
 
                 // read bytes until reader indicates it's done
                 const { value, done } = await this.reader.read();
-                if(done){
+                if (done){
                     break;
                 }
 
@@ -240,18 +240,18 @@ class WebSerialConnection extends SerialConnection {
                 await this.onDataReceived(value);
 
             }
-        } catch(error) {
+        } catch (error) {
 
             // ignore error if reader was released
-            if(this.isClosing){
+            if (this.isClosing){
                 return;
             }
 
-            if(error instanceof DOMException && error.name === "AbortError"){
+            if (error instanceof DOMException && error.name === 'AbortError'){
                 return;
             }
 
-            if(error instanceof TypeError){
+            if (error instanceof TypeError){
                 return;
             }
 

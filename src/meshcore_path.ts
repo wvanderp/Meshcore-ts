@@ -1,6 +1,6 @@
-import BufferReader from "./buffer_reader";
-import HexUtil from "./hex_util";
-import Packet from "./packet";
+import BufferReader from './buffer_reader';
+import HexUtil from './hex_util';
+import Packet from './packet';
 
 /**
  * Represents a decoded MeshCore routing path.
@@ -32,7 +32,7 @@ class MeshCorePath {
     static fromPathAndLength(path, pathLen) {
 
         // make sure path is valid
-        if(pathLen === 0xFF){
+        if (pathLen === 0xFF){
             return null;
         }
 
@@ -40,14 +40,14 @@ class MeshCorePath {
         const pathHashCount = Packet.extractPathHashCount(pathLen);
         const pathByteLength = pathHashCount * pathHashSize;
         const pathBytes = path.subarray(0, pathByteLength);
-        if(pathBytes.length < pathByteLength){
+        if (pathBytes.length < pathByteLength){
             return null;
         }
 
         // convert path to comma delimited hex string
         const pathItems: Uint8Array[] = [];
         const pathBuffer = new BufferReader(pathBytes);
-        for(let i = 0; i < pathHashCount; i++){
+        for (let i = 0; i < pathHashCount; i++){
             pathItems.push(pathBuffer.readBytes(pathHashSize));
         }
 
@@ -58,7 +58,7 @@ class MeshCorePath {
     toHexPathString() {
         return this.pathItems.map((pathItem) => {
             return HexUtil.bytesToHex(pathItem);
-        }).join(",");
+        }).join(',');
     }
 
 }

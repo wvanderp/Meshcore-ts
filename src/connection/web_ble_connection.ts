@@ -1,12 +1,12 @@
-import Constants from "../constants";
-import Connection from "./connection";
+import Constants from '../constants';
+import Connection from './connection';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 // Minimal inline types for the Web Bluetooth API (not in standard TS DOM lib)
 type BluetoothDevice = {
     gatt: { connect(): Promise<BluetoothRemoteGATTServer> };
-    addEventListener(type: "gattserverdisconnected", listener: () => void): void;
+    addEventListener(type: 'gattserverdisconnected', listener: () => void): void;
 };
 
 type BluetoothRemoteGATTServer = {
@@ -21,7 +21,7 @@ type BluetoothRemoteGATTService = {
 type BluetoothRemoteGATTCharacteristic = {
     uuid: string;
     startNotifications(): Promise<void>;
-    addEventListener(type: "characteristicvaluechanged", listener: (event: any) => void): void;
+    addEventListener(type: 'characteristicvaluechanged', listener: (event: any) => void): void;
     writeValue(value: Uint8Array): Promise<void>;
 };
 
@@ -64,8 +64,8 @@ class WebBleConnection extends Connection {
         } | undefined;
 
         // ensure browser supports web bluetooth
-        if(!bluetooth){
-            alert("Web Bluetooth is not supported in this browser");
+        if (!bluetooth){
+            alert('Web Bluetooth is not supported in this browser');
             return;
         }
 
@@ -81,7 +81,7 @@ class WebBleConnection extends Connection {
         });
 
         // make sure user selected a device
-        if(!device){
+        if (!device){
             return null;
         }
 
@@ -92,7 +92,7 @@ class WebBleConnection extends Connection {
     async init() {
 
         // listen for ble disconnect
-        this.bleDevice.addEventListener("gattserverdisconnected", () => {
+        this.bleDevice.addEventListener('gattserverdisconnected', () => {
             this.onDisconnected();
         });
 
@@ -115,8 +115,9 @@ class WebBleConnection extends Connection {
 
         // listen for frames from transmitted to us from the ble device
         await this.txCharacteristic!.startNotifications();
-        this.txCharacteristic!.addEventListener("characteristicvaluechanged", (event: any) => {
-            const frame = new Uint8Array(event.target.value.buffer);
+        this.txCharacteristic!.addEventListener('characteristicvaluechanged', (event: any) => {
+            const value = event.target.value as DataView;
+            const frame = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
             this.onFrameReceived(frame);
         });
 
@@ -140,17 +141,16 @@ class WebBleConnection extends Connection {
             // todo: implement mutex to prevent multiple writes when another write is in progress
             // we write to the rx characteristic, as that's where the radio reads from
             await this.rxCharacteristic!.writeValue(bytes);
-        } catch(e) {
-            console.log("failed to write to ble device", e);
+        } catch (e) {
+            console.log('failed to write to ble device', e);
         }
     }
 
     async sendToRadioFrame(frame: Uint8Array) {
-        this.emit("tx", frame);
+        this.emit('tx', frame);
         await this.write(frame);
     }
 
 }
 
 export default WebBleConnection;
-

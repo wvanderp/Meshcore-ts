@@ -99,14 +99,39 @@ conn.on("connected", async () => {
 ### Listen for incoming messages
 
 ```ts
-conn.on("contactMessage", (msg) => {
-    console.log(`[DM from ${msg.senderPubKeyPrefix}]:`, msg.text);
-});
+import { Constants } from "meshcore-ts";
 
-conn.on("channelMessage", (msg) => {
-    console.log(`[Channel ${msg.channelIdx}]:`, msg.text);
+let isDrainingMessages = false;
+
+conn.on(Constants.PushCodes.MsgWaiting, async () => {
+    // The firmware queues incoming contact messages, channel messages, and
+    // channel data. MsgWaiting is only a notification that the queue has data.
+    if (isDrainingMessages) return;
+
+    isDrainingMessages = true;
+    try {
+        for (const record of await conn.getWaitingMessages()) {
+            if (record.contactMessage) {
+                console.log(`[DM from ${record.contactMessage.pubKeyPrefix}]:`, record.contactMessage.text);
+            } else if (record.channelMessage) {
+                console.log(`[Channel ${record.channelMessage.channelIdx}]:`, record.channelMessage.text);
+            } else if (record.channelData) {
+                console.log(`[Channel data ${record.channelData.channelIdx}]`, record.channelData.data);
+            }
+        }
+    } finally {
+        isDrainingMessages = false;
+    }
 });
 ```
+
+Drain the queue promptly: the companion firmware has a bounded offline queue
+and can replace older queued channel messages when it fills. The library emits
+protocol events using the numeric values in `Constants`; it does not emit
+`"contactMessage"` or `"channelMessage"` string events. Individual synced
+responses can also be observed through `Constants.ResponseCodes.ContactMsgRecv`,
+`ContactMsgRecvV3`, `ChannelMsgRecv`, and `ChannelMsgRecvV3`, but applications
+should normally use `getWaitingMessages()` as shown above.
 
 ### Parse an advertisement
 
@@ -208,12 +233,14 @@ Provides the full companion protocol command/response API.
 |-------|-------------|------------|
 | `"connected"` | — | Transport connected and handshake done |
 | `"disconnected"` | — | Transport disconnected |
-| `"contactMessage"` | `ContactMessageResponse` | A direct message arrived |
-| `"channelMessage"` | `ChannelMessageResponse` | A channel message arrived |
-| `"telemetry"` | `TelemetryResponsePush` | Telemetry push received |
-| `"traceData"` | `TraceDataPush` | Trace-path data received |
-| `"statusResponse"` | `StatusResponsePush` | Status response push |
-| `"logRxData"` | `LogRxDataPush` | Raw RX log data |
+| `Constants.PushCodes.MsgWaiting` | `{}` | Firmware has queued messages; call `getWaitingMessages()` |
+| `Constants.ResponseCodes.ContactMsgRecv` / `ContactMsgRecvV3` | `ContactMessageResponse` | A requested queued direct message was returned |
+| `Constants.ResponseCodes.ChannelMsgRecv` / `ChannelMsgRecvV3` | `ChannelMessageResponse` | A requested queued channel message was returned |
+| `Constants.ResponseCodes.ChannelDataRecv` | `ChannelDataResponse` | A requested queued channel datagram was returned |
+| `Constants.PushCodes.TelemetryResponse` | `TelemetryResponsePush` | Telemetry push received |
+| `Constants.PushCodes.TraceData` | `TraceDataPush` | Trace-path data received |
+| `Constants.PushCodes.StatusResponse` | `StatusResponsePush` | Status response push |
+| `Constants.PushCodes.LogRxData` | `LogRxDataPush` | Raw RX log data |
 | `"rx"` | `ByteArrayLike` | Raw inbound frame (debugging) |
 | `"tx"` | `ByteArrayLike` | Raw outbound frame (debugging) |
 

@@ -20,23 +20,23 @@ class Constants {
     static SerialFrameTypes = {
         Incoming: 0x3e, // ">"
         Outgoing: 0x3c, // "<"
-    }
+    };
 
     static Ble = {
-        ServiceUuid: "6E400001-B5A3-F393-E0A9-E50E24DCCA9E",
-        CharacteristicUuidRx: "6E400002-B5A3-F393-E0A9-E50E24DCCA9E",
-        CharacteristicUuidTx: "6E400003-B5A3-F393-E0A9-E50E24DCCA9E",
-    }
+        ServiceUuid: '6E400001-B5A3-F393-E0A9-E50E24DCCA9E',
+        CharacteristicUuidRx: '6E400002-B5A3-F393-E0A9-E50E24DCCA9E',
+        CharacteristicUuidTx: '6E400003-B5A3-F393-E0A9-E50E24DCCA9E',
+    };
 
     static DataTypes = {
         Dev: 0xFFFF, // developer namespace for experimenting with group/channel datagrams and building apps
-    }
+    };
 
     static StatsTypes = {
         Core: 0,
         Radio: 1,
         Packets: 2,
-    }
+    };
 
     static CommandCodes = {
         AppStart: 1,
@@ -101,7 +101,7 @@ class Constants {
         SetDefaultFloodScope: 63,
         GetDefaultFloodScope: 64,
         SendRawPacket: 65,
-    }
+    };
 
     static ResponseCodes = {
         Ok: 0, // todo
@@ -133,7 +133,7 @@ class Constants {
         AllowedRepeatFreq: 26,
         ChannelDataRecv: 27,
         DefaultFloodScope: 28,
-    }
+    };
 
     static PushCodes = {
         Advert: 0x80, // when companion is set to auto add contacts
@@ -153,7 +153,7 @@ class Constants {
         ControlData: 0x8E,
         ContactDeleted: 0x8F,
         ContactsFull: 0x90,
-    }
+    };
 
     static ErrorCodes = {
         UnsupportedCmd: 1,
@@ -162,32 +162,32 @@ class Constants {
         BadState: 4,
         FileIoError: 5,
         IllegalArg: 6,
-    }
+    };
 
     static AdvType = {
         None: 0,
         Chat: 1,
         Repeater: 2,
         Room: 3,
-    }
+    };
 
     static SelfAdvertTypes = {
         ZeroHop: 0,
         Flood: 1,
-    }
+    };
 
     static TxtTypes = {
         Plain: 0,
         CliData: 1,
         SignedPlain: 2,
-    }
+    };
 
     static BinaryRequestTypes = {
         GetTelemetryData: 0x03, // #define REQ_TYPE_GET_TELEMETRY_DATA 0x03
         GetAvgMinMax: 0x04, // #define REQ_TYPE_GET_AVG_MIN_MAX 0x04
         GetAccessList: 0x05, // #define REQ_TYPE_GET_ACCESS_LIST 0x05
         GetNeighbours: 0x06, // #define REQ_TYPE_GET_NEIGHBOURS 0x06
-    }
+    };
 
 }
 

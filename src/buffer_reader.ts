@@ -45,10 +45,10 @@ class BufferReader {
     readCString(maxLength) {
         const value: number[] = [];
         const bytes = this.readBytes(maxLength);
-        for(const byte of bytes){
+        for (const byte of bytes){
 
             // if we find a null terminator character, we have reached the end of the cstring
-            if(byte === 0){
+            if (byte === 0){
                 return new TextDecoder().decode(new Uint8Array(value));
             }
 
@@ -120,7 +120,7 @@ class BufferReader {
         // 0x800000 is the sign bit for a 24-bit value
         // if it's set, value is negative in 24-bit two's complement
         // so we subtract 0x1000000 (which is 2^24) to get the correct negative value as a Dart integer
-        if((value & 0x800000) !== 0){
+        if ((value & 0x800000) !== 0){
             value -= 0x1000000;
         }
 

@@ -26,7 +26,7 @@ class EventEmitter {
     on<TArgs extends unknown[]>(event: EventName, callback: EventListener<TArgs>) {
 
         // create list of listeners for event if it doesn't exist
-        if(!this.eventListenersMap.has(event)){
+        if (!this.eventListenersMap.has(event)){
             this.eventListenersMap.set(event, []);
         }
 
@@ -38,7 +38,7 @@ class EventEmitter {
     off<TArgs extends unknown[]>(event: EventName, callback: EventListener<TArgs>) {
 
         // remove callback from listeners for this event
-        if(this.eventListenersMap.has(event)){
+        if (this.eventListenersMap.has(event)){
             const callbacks = this.eventListenersMap.get(event)!.filter((cb) => cb !== (callback as EventListener));
             this.eventListenersMap.set(event, callbacks);
         }
@@ -72,8 +72,8 @@ class EventEmitter {
         const eventListeners = this.eventListenersMap.get(event);
 
         // invoke each listener for this event
-        if(eventListeners){
-            for(const eventListener of eventListeners){
+        if (eventListeners){
+            for (const eventListener of eventListeners){
                 setTimeout(() => eventListener(...data), 0);
             }
         }

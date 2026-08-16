@@ -1,8 +1,8 @@
-import BufferReader from "../buffer_reader";
-import Constants from "../constants";
+import BufferReader from '../buffer_reader';
+import Constants from '../constants';
 
-import ConnectionCommands from "./connection_commands";
-import type { AdvertPathResponse, ByteArrayLike, MeshContactRecord } from "./connection_types";
+import ConnectionCommands from './connection_commands';
+import type { AdvertPathResponse, ByteArrayLike, MeshContactRecord } from './connection_types';
 
 /**
  * Deserialises and dispatches incoming companion protocol frames.
@@ -26,102 +26,102 @@ class ConnectionFrameHandlers extends ConnectionCommands {
 
     onFrameReceived(frame: ByteArrayLike): void {
 
-        this.emit("rx", frame);
+        this.emit('rx', frame);
 
         const bufferReader = new BufferReader(frame);
         const responseCode = bufferReader.readByte();
 
-        if(responseCode === Constants.ResponseCodes.Ok){
+        if (responseCode === Constants.ResponseCodes.Ok){
             this.onOkResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.Err){
+        } else if (responseCode === Constants.ResponseCodes.Err){
             this.onErrResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.SelfInfo){
+        } else if (responseCode === Constants.ResponseCodes.SelfInfo){
             this.onSelfInfoResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.CurrTime){
+        } else if (responseCode === Constants.ResponseCodes.CurrTime){
             this.onCurrTimeResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.NoMoreMessages){
+        } else if (responseCode === Constants.ResponseCodes.NoMoreMessages){
             this.onNoMoreMessagesResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.ContactMsgRecv){
+        } else if (responseCode === Constants.ResponseCodes.ContactMsgRecv){
             this.onContactMsgRecvResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.ChannelMsgRecv){
+        } else if (responseCode === Constants.ResponseCodes.ChannelMsgRecv){
             this.onChannelMsgRecvResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.ContactMsgRecvV3){
+        } else if (responseCode === Constants.ResponseCodes.ContactMsgRecvV3){
             this.onContactMsgRecvV3Response(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.ChannelMsgRecvV3){
+        } else if (responseCode === Constants.ResponseCodes.ChannelMsgRecvV3){
             this.onChannelMsgRecvV3Response(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.ContactsStart){
+        } else if (responseCode === Constants.ResponseCodes.ContactsStart){
             this.onContactsStartResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.Contact){
+        } else if (responseCode === Constants.ResponseCodes.Contact){
             this.onContactResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.EndOfContacts){
+        } else if (responseCode === Constants.ResponseCodes.EndOfContacts){
             this.onEndOfContactsResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.Sent){
+        } else if (responseCode === Constants.ResponseCodes.Sent){
             this.onSentResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.ExportContact){
+        } else if (responseCode === Constants.ResponseCodes.ExportContact){
             this.onExportContactResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.BatteryVoltage){
+        } else if (responseCode === Constants.ResponseCodes.BatteryVoltage){
             this.onBatteryVoltageResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.DeviceInfo){
+        } else if (responseCode === Constants.ResponseCodes.DeviceInfo){
             this.onDeviceInfoResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.PrivateKey){
+        } else if (responseCode === Constants.ResponseCodes.PrivateKey){
             this.onPrivateKeyResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.Disabled){
+        } else if (responseCode === Constants.ResponseCodes.Disabled){
             this.onDisabledResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.ChannelInfo){
+        } else if (responseCode === Constants.ResponseCodes.ChannelInfo){
             this.onChannelInfoResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.SignStart){
+        } else if (responseCode === Constants.ResponseCodes.SignStart){
             this.onSignStartResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.Signature){
+        } else if (responseCode === Constants.ResponseCodes.Signature){
             this.onSignatureResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.CustomVars){
+        } else if (responseCode === Constants.ResponseCodes.CustomVars){
             this.onCustomVarsResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.AdvertPath){
+        } else if (responseCode === Constants.ResponseCodes.AdvertPath){
             this.onAdvertPathResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.TuningParams){
+        } else if (responseCode === Constants.ResponseCodes.TuningParams){
             this.onTuningParamsResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.Stats){
+        } else if (responseCode === Constants.ResponseCodes.Stats){
             this.onStatsResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.AutoAddConfig){
+        } else if (responseCode === Constants.ResponseCodes.AutoAddConfig){
             this.onAutoAddConfigResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.AllowedRepeatFreq){
+        } else if (responseCode === Constants.ResponseCodes.AllowedRepeatFreq){
             this.onAllowedRepeatFreqResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.ChannelDataRecv){
+        } else if (responseCode === Constants.ResponseCodes.ChannelDataRecv){
             this.onChannelDataRecvResponse(bufferReader);
-        } else if(responseCode === Constants.ResponseCodes.DefaultFloodScope){
+        } else if (responseCode === Constants.ResponseCodes.DefaultFloodScope){
             this.onDefaultFloodScopeResponse(bufferReader);
-        } else if(responseCode === Constants.PushCodes.Advert){
+        } else if (responseCode === Constants.PushCodes.Advert){
             this.onAdvertPush(bufferReader);
-        } else if(responseCode === Constants.PushCodes.PathUpdated){
+        } else if (responseCode === Constants.PushCodes.PathUpdated){
             this.onPathUpdatedPush(bufferReader);
-        } else if(responseCode === Constants.PushCodes.SendConfirmed){
+        } else if (responseCode === Constants.PushCodes.SendConfirmed){
             this.onSendConfirmedPush(bufferReader);
-        } else if(responseCode === Constants.PushCodes.MsgWaiting){
+        } else if (responseCode === Constants.PushCodes.MsgWaiting){
             this.onMsgWaitingPush(bufferReader);
-        } else if(responseCode === Constants.PushCodes.RawData){
+        } else if (responseCode === Constants.PushCodes.RawData){
             this.onRawDataPush(bufferReader);
-        } else if(responseCode === Constants.PushCodes.LoginFail){
+        } else if (responseCode === Constants.PushCodes.LoginFail){
             this.onLoginFailPush(bufferReader);
-        } else if(responseCode === Constants.PushCodes.LoginSuccess){
+        } else if (responseCode === Constants.PushCodes.LoginSuccess){
             this.onLoginSuccessPush(bufferReader);
-        } else if(responseCode === Constants.PushCodes.StatusResponse){
+        } else if (responseCode === Constants.PushCodes.StatusResponse){
             this.onStatusResponsePush(bufferReader);
-        } else if(responseCode === Constants.PushCodes.LogRxData){
+        } else if (responseCode === Constants.PushCodes.LogRxData){
             this.onLogRxDataPush(bufferReader);
-        } else if(responseCode === Constants.PushCodes.TelemetryResponse){
+        } else if (responseCode === Constants.PushCodes.TelemetryResponse){
             this.onTelemetryResponsePush(bufferReader);
-        } else if(responseCode === Constants.PushCodes.TraceData){
+        } else if (responseCode === Constants.PushCodes.TraceData){
             this.onTraceDataPush(bufferReader);
-        } else if(responseCode === Constants.PushCodes.NewAdvert){
+        } else if (responseCode === Constants.PushCodes.NewAdvert){
             this.onNewAdvertPush(bufferReader);
-        } else if(responseCode === Constants.PushCodes.BinaryResponse){
+        } else if (responseCode === Constants.PushCodes.BinaryResponse){
             this.onBinaryResponsePush(bufferReader);
-        } else if(responseCode === Constants.PushCodes.PathDiscoveryResponse){
+        } else if (responseCode === Constants.PushCodes.PathDiscoveryResponse){
             this.onPathDiscoveryResponsePush(bufferReader);
-        } else if(responseCode === Constants.PushCodes.ControlData){
+        } else if (responseCode === Constants.PushCodes.ControlData){
             this.onControlDataPush(bufferReader);
-        } else if(responseCode === Constants.PushCodes.ContactDeleted){
+        } else if (responseCode === Constants.PushCodes.ContactDeleted){
             this.onContactDeletedPush(bufferReader);
-        } else if(responseCode === Constants.PushCodes.ContactsFull){
+        } else if (responseCode === Constants.PushCodes.ContactsFull){
             this.onContactsFullPush(bufferReader);
         } else {
             console.log(`unhandled frame: code=${responseCode}`, frame);
@@ -136,7 +136,7 @@ class ConnectionFrameHandlers extends ConnectionCommands {
             flags: bufferReader.readByte(),
             outPathLen: bufferReader.readInt8(),
             outPath: bufferReader.readBytes(64),
-            advName: bufferReader.readCString(32) ?? "",
+            advName: bufferReader.readCString(32) ?? '',
             lastAdvert: bufferReader.readUInt32LE(),
             advLat: bufferReader.readInt32LE(),
             advLon: bufferReader.readInt32LE(),
@@ -222,8 +222,8 @@ class ConnectionFrameHandlers extends ConnectionCommands {
     }
 
     onControlDataPush(bufferReader: BufferReader) {
-        if(bufferReader.getRemainingBytesCount() < 3){
-            console.log("malformed control data push: missing radio metadata");
+        if (bufferReader.getRemainingBytesCount() < 3){
+            console.log('malformed control data push: missing radio metadata');
             return;
         }
 
@@ -232,7 +232,7 @@ class ConnectionFrameHandlers extends ConnectionCommands {
         const pathLen = bufferReader.readByte();
         const remainingLength = bufferReader.getRemainingBytesCount();
 
-        if(pathLen > remainingLength){
+        if (pathLen > remainingLength){
             console.log(
                 `malformed control data push: path length ${pathLen} exceeds remaining frame length ${remainingLength}`,
             );
@@ -258,13 +258,13 @@ class ConnectionFrameHandlers extends ConnectionCommands {
             reserved: bufferReader.readByte(),
             pubKeyPrefix: bufferReader.readBytes(6),
         };
-        if(bufferReader.getRemainingBytesCount() >= 4){
+        if (bufferReader.getRemainingBytesCount() >= 4){
             response.tag = bufferReader.readUInt32LE();
         }
-        if(bufferReader.getRemainingBytesCount() >= 1){
+        if (bufferReader.getRemainingBytesCount() >= 1){
             response.permissions = bufferReader.readByte();
         }
-        if(bufferReader.getRemainingBytesCount() >= 1){
+        if (bufferReader.getRemainingBytesCount() >= 1){
             response.firmwareVer = bufferReader.readByte();
         }
         this.emit(Constants.PushCodes.LoginSuccess, response);
@@ -367,7 +367,7 @@ class ConnectionFrameHandlers extends ConnectionCommands {
         const response: Record<string, unknown> = {
             batteryMilliVolts: bufferReader.readUInt16LE(),
         };
-        if(bufferReader.getRemainingBytesCount() >= 8){
+        if (bufferReader.getRemainingBytesCount() >= 8){
             response.storageUsedKb = bufferReader.readUInt32LE();
             response.storageTotalKb = bufferReader.readUInt32LE();
         }
@@ -384,17 +384,17 @@ class ConnectionFrameHandlers extends ConnectionCommands {
             firmware_build_date: firmwareBuildDate,
         };
 
-        if(bufferReader.getRemainingBytesCount() >= 60){
+        if (bufferReader.getRemainingBytesCount() >= 60){
             const reservedReader = new BufferReader(reserved);
             response.maxContacts = reservedReader.readByte() * 2;
             response.maxChannels = reservedReader.readByte();
             response.blePin = reservedReader.readUInt32LE();
-            response.manufacturerModel = bufferReader.readCString(40) ?? "";
-            response.semanticVersion = bufferReader.readCString(20) ?? "";
-            if(bufferReader.getRemainingBytesCount() >= 1){
+            response.manufacturerModel = bufferReader.readCString(40) ?? '';
+            response.semanticVersion = bufferReader.readCString(20) ?? '';
+            if (bufferReader.getRemainingBytesCount() >= 1){
                 response.clientRepeat = bufferReader.readByte() !== 0;
             }
-            if(bufferReader.getRemainingBytesCount() >= 1){
+            if (bufferReader.getRemainingBytesCount() >= 1){
                 response.pathHashMode = bufferReader.readByte();
             }
         } else {
@@ -421,7 +421,7 @@ class ConnectionFrameHandlers extends ConnectionCommands {
         const name = bufferReader.readCString(32);
         const remainingBytesLength = bufferReader.getRemainingBytesCount();
 
-        if(remainingBytesLength === 16){
+        if (remainingBytesLength === 16){
             this.emit(Constants.ResponseCodes.ChannelInfo, {
                 channelIdx: idx,
                 name: name,
@@ -472,7 +472,7 @@ class ConnectionFrameHandlers extends ConnectionCommands {
 
     onAllowedRepeatFreqResponse(bufferReader: BufferReader) {
         const ranges: Array<{ lowerFreq: number; upperFreq: number }> = [];
-        while(bufferReader.getRemainingBytesCount() >= 8){
+        while (bufferReader.getRemainingBytesCount() >= 8){
             ranges.push({
                 lowerFreq: bufferReader.readUInt32LE(),
                 upperFreq: bufferReader.readUInt32LE(),
@@ -482,12 +482,12 @@ class ConnectionFrameHandlers extends ConnectionCommands {
     }
 
     onDefaultFloodScopeResponse(bufferReader: BufferReader) {
-        if(bufferReader.getRemainingBytesCount() === 0){
+        if (bufferReader.getRemainingBytesCount() === 0){
             this.emit(Constants.ResponseCodes.DefaultFloodScope, { name: null, key: null });
             return;
         }
         this.emit(Constants.ResponseCodes.DefaultFloodScope, {
-            name: bufferReader.readCString(31) ?? "",
+            name: bufferReader.readCString(31) ?? '',
             key: bufferReader.readBytes(16),
         });
     }
@@ -514,13 +514,13 @@ class ConnectionFrameHandlers extends ConnectionCommands {
         const rawBufferReader = new BufferReader(raw);
 
         let data = {};
-        if(type === Constants.StatsTypes.Core){
+        if (type === Constants.StatsTypes.Core){
             data = {
                 batteryMilliVolts: rawBufferReader.readUInt16LE(),
                 uptimeSecs: rawBufferReader.readUInt32LE(),
                 queueLen: rawBufferReader.readUInt8(),
             };
-        } else if(type === Constants.StatsTypes.Radio){
+        } else if (type === Constants.StatsTypes.Radio){
             data = {
                 noiseFloor: rawBufferReader.readInt16LE(),
                 lastRssi: rawBufferReader.readInt8(),
@@ -528,7 +528,7 @@ class ConnectionFrameHandlers extends ConnectionCommands {
                 txAirSecs: rawBufferReader.readUInt32LE(),
                 rxAirSecs: rawBufferReader.readUInt32LE(),
             };
-        } else if(type === Constants.StatsTypes.Packets){
+        } else if (type === Constants.StatsTypes.Packets){
             data = {
                 recv: rawBufferReader.readUInt32LE(),
                 sent: rawBufferReader.readUInt32LE(),

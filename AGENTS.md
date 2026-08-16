@@ -50,6 +50,8 @@ Tests must exercise both the type contract and runtime behavior. Cover the cases
 
 Keep tests deterministic and assert observable behavior instead of private implementation details. Maintain the coverage thresholds configured in `vitest.config.ts`; do not weaken them to make a change pass.
 
+we are working with the clasical school of testing, that means that we try to use as many of the real classes as possible, and we try to avoid mocking. The only exception are when we need to simulate side effects, or when we cant simulate the behavior in the real classes. this means that we should design our classes to be testable, and we should avoid static methods, singletons, and other patterns that make testing difficult.
+
 Run checks in this order:
 
 1. `pnpm run typecheck`

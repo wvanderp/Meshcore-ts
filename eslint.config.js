@@ -8,7 +8,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 export default defineConfig([
     globalIgnores(["dist", "node_modules", "coverage"]),
     {
-        files: ["**/*.{ts}"],
+        files: ["**/*.ts"],
         extends: [
             js.configs.recommended,
             tseslint.configs.recommended,
@@ -27,7 +27,7 @@ export default defineConfig([
         rules: {
             /* --- Stylistic formatting --- */
             "@stylistic/indent": ["error", 4],
-            "@stylistic/quotes": ["error", "double", { avoidEscape: true }],
+            "@stylistic/quotes": ["error", "single", { avoidEscape: true }],
             "@stylistic/semi": ["error", "always"],
             "@stylistic/comma-dangle": ["error", "always-multiline"],
             "@stylistic/object-curly-spacing": ["error", "always"],
@@ -60,6 +60,14 @@ export default defineConfig([
             "jsdoc/require-example": ["error", {
                 contexts: ["ClassDeclaration"],
             }],
+        },
+    },
+    {
+        files: ["**/*.test.ts"],
+        rules: {
+            "jsdoc/require-jsdoc": "off",
+            "jsdoc/require-description": "off",
+            "jsdoc/require-example": "off",
         },
     },
 ]);

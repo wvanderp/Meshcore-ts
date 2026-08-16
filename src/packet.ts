@@ -1,10 +1,10 @@
-import BufferReader from "./buffer_reader";
-import Advert from "./advert";
-import MeshCorePath from "./meshcore_path";
+import BufferReader from './buffer_reader';
+import Advert from './advert';
+import MeshCorePath from './meshcore_path';
 
 type ByteArrayLike = ArrayLike<number>;
-type PacketRouteTypeString = "DIRECT" | "FLOOD" | "TRANSPORT_DIRECT" | "TRANSPORT_FLOOD";
-type PacketPayloadTypeString = "ACK" | "ADVERT" | "ANON_REQ" | "GRP_DATA" | "GRP_TXT" | "PATH" | "RAW_CUSTOM" | "REQ" | "RESPONSE" | "TRACE" | "TXT_MSG";
+type PacketRouteTypeString = 'DIRECT' | 'FLOOD' | 'TRANSPORT_DIRECT' | 'TRANSPORT_FLOOD';
+type PacketPayloadTypeString = 'ACK' | 'ADVERT' | 'ANON_REQ' | 'GRP_DATA' | 'GRP_TXT' | 'PATH' | 'RAW_CUSTOM' | 'REQ' | 'RESPONSE' | 'TRACE' | 'TXT_MSG';
 
 /**
  * Parses a raw MeshCore mesh packet from its binary representation.
@@ -63,12 +63,11 @@ class Packet {
     constructor(
         header: number,
         pathLen: number,
-         path: Uint8Array,
-          payload: Uint8Array,
-           transportCode1: number | null,
-            transportCode2: number | null
-        ) {
-
+        path: Uint8Array,
+        payload: Uint8Array,
+        transportCode1: number | null,
+        transportCode2: number | null,
+    ) {
 
         this.header = header;
         this.pathLen = pathLen;
@@ -99,7 +98,7 @@ class Packet {
         // parse transport codes
         let transportCode1: number | null = null;
         let transportCode2: number | null = null;
-        if(hasTransportCodes){
+        if (hasTransportCodes){
             transportCode1 = bufferReader.readUInt16LE();
             transportCode2 = bufferReader.readUInt16LE();
         }
@@ -145,7 +144,7 @@ class Packet {
     getPathHashes(): Uint8Array[] {
         const pathItems: Uint8Array[] = [];
         const pathBuffer = new BufferReader(this.path);
-        for(let i = 0; i < this.getPathHashCount(); i++){
+        for (let i = 0; i < this.getPathHashCount(); i++){
             pathItems.push(pathBuffer.readBytes(this.getPathHashSize()));
         }
         return pathItems;
@@ -156,11 +155,11 @@ class Packet {
     }
 
     getRouteTypeString(): PacketRouteTypeString | null {
-        switch(this.getRouteType()){
-            case Packet.ROUTE_TYPE_FLOOD: return "FLOOD";
-            case Packet.ROUTE_TYPE_DIRECT: return "DIRECT";
-            case Packet.ROUTE_TYPE_TRANSPORT_FLOOD: return "TRANSPORT_FLOOD";
-            case Packet.ROUTE_TYPE_TRANSPORT_DIRECT: return "TRANSPORT_DIRECT";
+        switch (this.getRouteType()){
+            case Packet.ROUTE_TYPE_FLOOD: return 'FLOOD';
+            case Packet.ROUTE_TYPE_DIRECT: return 'DIRECT';
+            case Packet.ROUTE_TYPE_TRANSPORT_FLOOD: return 'TRANSPORT_FLOOD';
+            case Packet.ROUTE_TYPE_TRANSPORT_DIRECT: return 'TRANSPORT_DIRECT';
         }
 
         /* v8 ignore next -- PH_ROUTE_MASK only yields the four route types above */
@@ -180,18 +179,18 @@ class Packet {
     }
 
     getPayloadTypeString(): PacketPayloadTypeString | null {
-        switch(this.getPayloadType()){
-            case Packet.PAYLOAD_TYPE_REQ: return "REQ";
-            case Packet.PAYLOAD_TYPE_RESPONSE: return "RESPONSE";
-            case Packet.PAYLOAD_TYPE_TXT_MSG: return "TXT_MSG";
-            case Packet.PAYLOAD_TYPE_ACK: return "ACK";
-            case Packet.PAYLOAD_TYPE_ADVERT: return "ADVERT";
-            case Packet.PAYLOAD_TYPE_GRP_TXT: return "GRP_TXT";
-            case Packet.PAYLOAD_TYPE_GRP_DATA: return "GRP_DATA";
-            case Packet.PAYLOAD_TYPE_ANON_REQ: return "ANON_REQ";
-            case Packet.PAYLOAD_TYPE_PATH: return "PATH";
-            case Packet.PAYLOAD_TYPE_TRACE: return "TRACE";
-            case Packet.PAYLOAD_TYPE_RAW_CUSTOM: return "RAW_CUSTOM";
+        switch (this.getPayloadType()){
+            case Packet.PAYLOAD_TYPE_REQ: return 'REQ';
+            case Packet.PAYLOAD_TYPE_RESPONSE: return 'RESPONSE';
+            case Packet.PAYLOAD_TYPE_TXT_MSG: return 'TXT_MSG';
+            case Packet.PAYLOAD_TYPE_ACK: return 'ACK';
+            case Packet.PAYLOAD_TYPE_ADVERT: return 'ADVERT';
+            case Packet.PAYLOAD_TYPE_GRP_TXT: return 'GRP_TXT';
+            case Packet.PAYLOAD_TYPE_GRP_DATA: return 'GRP_DATA';
+            case Packet.PAYLOAD_TYPE_ANON_REQ: return 'ANON_REQ';
+            case Packet.PAYLOAD_TYPE_PATH: return 'PATH';
+            case Packet.PAYLOAD_TYPE_TRACE: return 'TRACE';
+            case Packet.PAYLOAD_TYPE_RAW_CUSTOM: return 'RAW_CUSTOM';
             default: return null;
         }
     }
@@ -209,7 +208,7 @@ class Packet {
     }
 
     parsePayload() {
-        switch(this.getPayloadType()){
+        switch (this.getPayloadType()){
             case Packet.PAYLOAD_TYPE_PATH: return this.parsePayloadTypePath();
             case Packet.PAYLOAD_TYPE_REQ: return this.parsePayloadTypeReq();
             case Packet.PAYLOAD_TYPE_RESPONSE: return this.parsePayloadTypeResponse();

@@ -1,7 +1,7 @@
-import BufferReader from "./buffer_reader";
-import BufferWriter from "./buffer_writer";
+import BufferReader from './buffer_reader';
+import BufferWriter from './buffer_writer';
 
-type AdvertTypeString = "NONE" | "CHAT" | "REPEATER" | "ROOM" | "SENSOR";
+type AdvertTypeString = 'NONE' | 'CHAT' | 'REPEATER' | 'ROOM' | 'SENSOR';
 type ByteArrayLike = ArrayLike<number>;
 
 type ParsedAdvertData = {
@@ -79,18 +79,18 @@ class Advert {
 
     getTypeString(): AdvertTypeString | null {
         const type = this.getType();
-        if(type === Advert.ADV_TYPE_NONE) return "NONE";
-        if(type === Advert.ADV_TYPE_CHAT) return "CHAT";
-        if(type === Advert.ADV_TYPE_REPEATER) return "REPEATER";
-        if(type === Advert.ADV_TYPE_ROOM) return "ROOM";
-        if(type === Advert.ADV_TYPE_SENSOR) return "SENSOR";
-        
+        if (type === Advert.ADV_TYPE_NONE) return 'NONE';
+        if (type === Advert.ADV_TYPE_CHAT) return 'CHAT';
+        if (type === Advert.ADV_TYPE_REPEATER) return 'REPEATER';
+        if (type === Advert.ADV_TYPE_ROOM) return 'ROOM';
+        if (type === Advert.ADV_TYPE_SENSOR) return 'SENSOR';
+
         return null;
     }
 
     async isVerified(): Promise<boolean> {
 
-        const { ed25519 } = await import("@noble/curves/ed25519.js");
+        const { ed25519 } = await import('@noble/curves/ed25519.js');
 
         // build signed data
         const bufferWriter = new BufferWriter();
@@ -112,26 +112,26 @@ class Advert {
         // parse lat lon
         let lat: number | null = null;
         let lon: number | null = null;
-        if(flags & Advert.ADV_LATLON_MASK){
+        if (flags & Advert.ADV_LATLON_MASK){
             lat = bufferReader.readInt32LE();
             lon = bufferReader.readInt32LE();
         }
 
         // parse feat1
         let feat1: number | null = null;
-        if(flags & Advert.ADV_FEAT1_MASK){
+        if (flags & Advert.ADV_FEAT1_MASK){
             feat1 = bufferReader.readUInt16LE();
         }
 
         // parse feat2
         let feat2: number | null = null;
-        if(flags & Advert.ADV_FEAT2_MASK){
+        if (flags & Advert.ADV_FEAT2_MASK){
             feat2 = bufferReader.readUInt16LE();
         }
 
         // parse name (remainder of app data)
         let name: string | null = null;
-        if(flags & Advert.ADV_NAME_MASK){
+        if (flags & Advert.ADV_NAME_MASK){
             name = bufferReader.readString();
         }
 

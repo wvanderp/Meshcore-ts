@@ -1,7 +1,11 @@
-import BufferWriter from "../buffer_writer";
-import BufferReader from "../buffer_reader";
-import Constants from "../constants";
-import Connection from "./connection";
+import BufferWriter from '../buffer_writer';
+import BufferReader from '../buffer_reader';
+import Constants from '../constants';
+import Connection from './connection';
+
+// Firmware frames are bounded by MAX_FRAME_SIZE. Rejecting larger advertised
+// lengths lets a stream recover instead of waiting forever on a corrupt header.
+const MAX_COMPANION_FRAME_LENGTH = 172;
 
 /**
  * Abstract serial transport for the MeshCore companion protocol.
@@ -26,14 +30,14 @@ class SerialConnection extends Connection {
     constructor() {
         super();
         this.readBuffer = [];
-        if(this.constructor === SerialConnection){
+        if (this.constructor === SerialConnection){
             throw new Error("SerialConnection is an abstract class and can't be instantiated.");
         }
     }
 
     async write(bytes) {
         void bytes;
-        throw new Error("Not Implemented: write must be implemented by SerialConnection sub class.");
+        throw new Error('Not Implemented: write must be implemented by SerialConnection sub class.');
     }
 
     async writeFrame(frameType, frameData) {
@@ -55,7 +59,7 @@ class SerialConnection extends Connection {
 
     async sendToRadioFrame(data) {
         // write "app to radio" frame 0x3c "<"
-        this.emit("tx", data);
+        this.emit('tx', data);
         await this.writeFrame(0x3c, data);
     }
 
@@ -70,7 +74,7 @@ class SerialConnection extends Connection {
         // process read buffer while there is enough bytes for a frame header
         // 3 bytes frame header = (1 byte frame type) + (2 bytes frame length as unsigned 16-bit little endian)
         const frameHeaderLength = 3;
-        while(this.readBuffer.length >= frameHeaderLength){
+        while (this.readBuffer.length >= frameHeaderLength){
             try {
 
                 // extract frame header
@@ -78,7 +82,7 @@ class SerialConnection extends Connection {
 
                 // ensure frame type supported
                 const frameType = frameHeader.readByte();
-                if(frameType !== Constants.SerialFrameTypes.Incoming && frameType !== Constants.SerialFrameTypes.Outgoing){
+                if (frameType !== Constants.SerialFrameTypes.Incoming && frameType !== Constants.SerialFrameTypes.Outgoing){
                     // unexpected byte, lets skip it and try again
                     this.readBuffer = this.readBuffer.slice(1);
                     continue;
@@ -86,7 +90,7 @@ class SerialConnection extends Connection {
 
                 // ensure frame length valid
                 const frameLength = frameHeader.readUInt16LE();
-                if(!frameLength){
+                if (!frameLength || frameLength > MAX_COMPANION_FRAME_LENGTH){
                     // unexpected byte, lets skip it and try again
                     this.readBuffer = this.readBuffer.slice(1);
                     continue;
@@ -94,7 +98,7 @@ class SerialConnection extends Connection {
 
                 // check if we have received enough bytes for this frame, otherwise wait until more bytes received
                 const requiredLength = frameHeaderLength + frameLength;
-                if(this.readBuffer.length < requiredLength){
+                if (this.readBuffer.length < requiredLength){
                     break;
                 }
 
@@ -105,9 +109,11 @@ class SerialConnection extends Connection {
                 // handle received frame
                 this.onFrameReceived(frameData);
 
-            } catch(e) {
-                console.error("Failed to process frame", e);
-                break;
+            } catch (e) {
+                console.error('Failed to process frame', e);
+                // The complete failing frame has already been removed. Continue
+                // so one malformed payload cannot hold up later valid frames.
+                continue;
             }
         }
 

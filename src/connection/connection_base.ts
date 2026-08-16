@@ -1,7 +1,7 @@
-import Constants from "../constants";
-import EventEmitter from "../events";
+import Constants from '../constants';
+import EventEmitter from '../events';
 
-import type { ByteArrayLike } from "./connection_types";
+import type { ByteArrayLike } from './connection_types';
 
 /**
  * Base class for all MeshCore companion connection implementations.
@@ -30,21 +30,21 @@ class ConnectionBase extends EventEmitter {
             // ignore
         }
 
-        this.emit("connected");
+        this.emit('connected');
 
     }
 
     onDisconnected(): void {
-        this.emit("disconnected");
+        this.emit('disconnected');
     }
 
     async close(): Promise<void> {
-        throw new Error("This method must be implemented by the subclass.");
+        throw new Error('This method must be implemented by the subclass.');
     }
 
     async sendToRadioFrame(data: ByteArrayLike): Promise<void> {
         void data;
-        throw new Error("This method must be implemented by the subclass.");
+        throw new Error('This method must be implemented by the subclass.');
     }
 
     createPromise<T>(
@@ -63,7 +63,7 @@ class ConnectionBase extends EventEmitter {
 
     async deviceQuery(appTargetVer: number): Promise<unknown> {
         void appTargetVer;
-        throw new Error("This method must be implemented by the subclass.");
+        throw new Error('This method must be implemented by the subclass.');
     }
 
 }
